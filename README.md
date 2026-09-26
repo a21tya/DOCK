@@ -2,6 +2,8 @@
 
 A centered input that reshapes the entire page as you type or speak. This is the new front page for DOCK. The earlier CSV and PDF workspace code is preserved in `src/legacy-workspace.js`, `src/legacy-workspace.css`, and `src/pdf-analysis.js` for integration later.
 
+The live app is at [do-ck.vercel.app](https://do-ck.vercel.app/). See [ROADMAP.md](ROADMAP.md) for the ordered work plan and how we will evaluate a future local intent model.
+
 ## Run
 
 ```bash
@@ -52,7 +54,7 @@ The local Vite server and a production Vercel Function share `/api/interpret`. W
 
 For local development only, create `.env.local` in the project directory with `GEMINI_API_KEY=your_key_here`, then restart `npm run dev`. `.env.local` is ignored by Git. `GEMINI_MODEL` is optional and defaults to `gemini-3.1-flash-lite`.
 
-The API is not active on GitHub Pages and has not been tested against Gemini without a key. It interprets prompts; it does not create image files or train Gemini's weights. The browser learning layer stores only the corrections you explicitly teach.
+The API is not active on GitHub Pages. The Vercel deployment has been tested with Gemini on an unfamiliar visual prompt. It interprets prompts; it does not create image files or train Gemini's weights. The browser learning layer stores only the corrections you explicitly teach. Successful model interpretations are reused in memory during the current tab session so repeated prompts appear immediately; they are not saved to disk.
 
 ## Atlas, weather, and everyday prompts
 
