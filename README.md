@@ -37,14 +37,22 @@ Emoji patterns size to the viewport so the wallpaper covers tall and wide screen
 
 ## Open-ended prompts with Gemini
 
-The local Vite server has an optional `/api/interpret` endpoint for prompts the built-in scenes do not understand. Without a key, DOCK immediately shows search links. To enable model interpretation, create `.env.local` in this project with:
+DOCK now has a shared intent plan for object and colour requests. For example, `a red car` and `the colour of the car is red` both become `{action:"show_object",subject:"car",colour:"red",emoji:"🚗"}` and render the same scene without an API call. It currently recognizes a small set of common objects and one colour per request. Ambiguous requests fall through to the existing handlers or the optional model route. The model route now returns a validated `show_object`, `show_atmosphere`, or `answer` plan; it does not execute arbitrary model instructions. This is the first interpretation layer, not a trained or self-learning model.
 
-```text
-GEMINI_API_KEY=your_key_here
-GEMINI_MODEL=gemini-3.1-flash-lite
-```
+For an unfamiliar phrase, use **Teach DOCK** to enter an equivalent prompt that DOCK already understands. For a result that looks wrong, choose **Correct this** under the search bar. Corrections can point to scenes, lists, timers, maps, trips, the calendar, the clock, and local games. The exact phrase association is saved in browser local storage and reused on later visits. A remembered result has a **Forget** control. DOCK also recognizes close rewordings that keep at least two meaningful words; unrelated topics do not inherit a correction. This is a small example-based learning layer, not foundation-model retraining, and it stays in this browser.
 
-Restart `npm run dev`. The key is read by the local server and is never sent to the browser. The model returns a short answer or a structured colour and emoji scene. This is an interpretation layer, not image generation or automatic training. Prompts and corrections are not yet saved as learning examples. The endpoint currently runs in Vite development mode; a production deployment needs a matching server route.
+The local Vite server and a production Vercel Function share `/api/interpret`. When configured, unfamiliar prompts become a validated scene or brief answer. The Gemini key is read on the server and is never placed in the browser bundle. GitHub Pages remains a static preview: it can use the local learning layer, but it cannot run the Gemini function. Deploy the repository to Vercel for live model interpretation.
+
+### Set up live AI safely
+
+1. Open [Google AI Studio API keys](https://aistudio.google.com/api-keys), sign in, and create a key. Do not paste it into the DOCK search bar, GitHub, or a chat.
+2. In Vercel, choose **Add New → Project**, import `a21tya/DOCK`, and keep the Vite defaults (`npm run build`, output directory `dist`). Deploy once.
+3. In that Vercel project, open **Settings → Environment Variables**. Add **Name:** `GEMINI_API_KEY`; **Value:** your key. Select **Production** (and **Preview** if you want preview deployments to use AI). Do not prefix the name with `VITE_`.
+4. Redeploy from **Deployments**. Environment variable changes only apply to new deployments. Open the resulting Vercel URL and try an unfamiliar prompt such as `a violet castle floating over the sea`.
+
+For local development only, create `.env.local` in the project directory with `GEMINI_API_KEY=your_key_here`, then restart `npm run dev`. `.env.local` is ignored by Git. `GEMINI_MODEL` is optional and defaults to `gemini-3.1-flash-lite`.
+
+The API is not active on GitHub Pages and has not been tested against Gemini without a key. It interprets prompts; it does not create image files or train Gemini's weights. The browser learning layer stores only the corrections you explicitly teach.
 
 ## Atlas, weather, and everyday prompts
 

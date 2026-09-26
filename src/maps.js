@@ -45,7 +45,7 @@ export async function mountMap(mode,country=null){
   if(country&&state.selectedCountry!==country){state.selectedCountry=country;state.view=null}
   const host=document.querySelector('#map-content');if(!host)return;
   try{
-    if(!cache[mode]){const url=mode==='india-map'?'/data/india-map.json':'/data/world-map.json';const response=await fetch(url);if(!response.ok)throw Error('Map data unavailable');cache[mode]=await response.json()}
+    if(!cache[mode]){const url=`${import.meta.env.BASE_URL}data/${mode==='india-map'?'india-map':'world-map'}.json`;const response=await fetch(url);if(!response.ok)throw Error('Map data unavailable');cache[mode]=await response.json()}
     if(!document.querySelector('#map-content')||state.mode!==mode)return;
     draw(mode);
   }catch{host.innerHTML='<p class="atlas-error">The map could not load. Refresh the page to try again.</p>'}

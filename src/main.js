@@ -3,9 +3,12 @@ import emojiKeywords from 'emojilib';
 import {calculate} from './math.js';
 import {mapShell,mountMap,countryForPrompt} from './maps.js';
 import {commands,sparks,slashMatch,parseDice,randomInt,makeDeck,drawCard,handValue,tripDates,saveActivity} from './dock-features.js';
+import {localObjectPlan,validateModelPlan,parseDuration,parseRelativeReminderText,parseNaturalList,matchTeaching} from './intent-plan.js';
 
 const app = document.querySelector('#app');
-const state = { text:'', committed:false, listening:false, notice:'', checked:new Set(), listItems:null, savedList:JSON.parse(localStorage.getItem('dock-list')||'null'), seconds:0, initial:0, running:false, interval:null, colorOverride:null, aiScene:null, aiUnavailable:false, reminders:JSON.parse(localStorage.getItem('dock-reminders')||'[]'),calendarMonth:new Date().getMonth(),calendarYear:new Date().getFullYear(),clockHands:null,clockIdle:null,weather:null,timePlace:null,activity:JSON.parse(localStorage.getItem('dock-activity')||'[]'),suggestionOffset:0,game:null,tripDraft:null };
+function loadTeachings(){try{const saved=JSON.parse(localStorage.getItem('dock-teachings')||'[]');return Array.isArray(saved)?saved.filter(item=>typeof item?.phrase==='string'&&typeof item?.target==='string').slice(-100):[]}catch{return []}}
+const state = { text:'', relativeReminder:null, committed:false, listening:false, notice:'', checked:new Set(), listItems:null, savedList:JSON.parse(localStorage.getItem('dock-list')||'null'), seconds:0, initial:0, running:false, interval:null, colorOverride:null, aiScene:null, aiUnavailable:false, teachings:loadTeachings(),teachOpen:false,reminders:JSON.parse(localStorage.getItem('dock-reminders')||'[]'),calendarMonth:new Date().getMonth(),calendarYear:new Date().getFullYear(),clockHands:null,clockIdle:null,weather:null,timePlace:null,activity:JSON.parse(localStorage.getItem('dock-activity')||'[]'),suggestionOffset:0,game:null,tripDraft:null };
+const teachableTypes=new Set(['emoji','creature','color','sky','sunset','night','aurora','pixel','list','timer','india-map','world-map','trip','calendar','clock','games-hub','game-rps','game-dice','game-blackjack']);
 const IST='Asia/Kolkata';
 const inIndia=(date,options)=>new Intl.DateTimeFormat('en-IN',{timeZone:IST,...options}).format(date);
 const indianNow=()=>{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:IST,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date());return Object.fromEntries(parts.map(p=>[p.type,Number(p.value)]))};
@@ -100,6 +103,8 @@ function findEmoji(text){
   return null;
 }
 function parseList(text){
+  const natural=parseNaturalList(text);
+  if(natural)return {items:natural,shopping:true};
   const prefix=text.match(/^\s*(?:(?:make|create)\s+(?:me\s+)?(?:a\s+)?(?:shopping\s+|grocery\s+|to[ -]?do\s+)?list(?:\s+of)?|(?:a\s+)?(?:shopping|grocery|to[ -]?do)\s+list|(?:a\s+)?list|buy|shop\s+for|pick\s+up|get|remember\s+to|i\s+need\s+to)\s*:?\s*/i);
   if(!prefix)return null;
   const body=text.slice(prefix[0].length).replace(/^\s*(?:(?:with|of)\s+)?\d+\s+(?:items?|things?)\s*:?(?:\s+like)?\s*/i,'').trim();
@@ -121,8 +126,9 @@ function parseReminder(text){
   if(when<=Date.now())when+=match[6]?7*86400000:86400000;
   return {label:(match[1]+(match[7]||'')).trim(),when};
 }
-function detect(input){
+function detect(input,skipMemory=false){
   const text=input.trim(), lower=text.toLowerCase();
+  if(!skipMemory){const teaching=matchTeaching(lower,state.teachings);if(teaching){const remembered=detect(teaching.target,true);if(remembered.type!=='search'&&remembered.type!=='idle')return {...remembered,remembered:true,learnedFrom:teaching.phrase,similar:teaching.similar}}}
   const slash=commands.find(c=>`/${c.label.toLowerCase()}`===lower);if(slash)return detect(slash.prompt);
   if(/^trip\s+(?:to|in)\s+(.+)/i.test(text))return {type:'trip',name:'Plan a trip',place:text.match(/^trip\s+(?:to|in)\s+(.+)/i)[1].trim()};
   if(/^(?:games|play games)$/i.test(text))return {type:'games-hub',name:'Games'};
@@ -141,8 +147,13 @@ function detect(input){
   if(weatherMatch)return {type:'weather',name:'Live weather',place:(weatherMatch[1]||'').trim(),data:state.weather?.query===text?state.weather.data:null,error:state.weather?.query===text?state.weather.error:null};
   const timeMatch=lower.match(/^(?:what time is it|what(?:'s| is) the time|current time|time)\s+(?:in|at)\s+(.+?)\??$/i);
   if(timeMatch)return {type:'place-time',name:'World time',place:timeMatch[1].replace(/[?!.]+$/,'').trim(),data:state.timePlace?.query===text?state.timePlace.data:null,error:state.timePlace?.query===text?state.timePlace.error:null};
-  const timer=lower.match(/(\d+(?:\.\d+)?)\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\b/);
-  if(timer&&/timer|focus|countdown|meditat|study|break|\d+\s*(min|sec|hr)/.test(lower))return {type:'timer',name:'Focus mode',seconds:Math.round(Number(timer[1])*(timer[2][0]==='h'?3600:timer[2][0]==='m'?60:1))};
+  const relativeReminder=parseRelativeReminderText(text);
+  if(relativeReminder){
+    if(state.relativeReminder?.query!==text)state.relativeReminder={query:text,when:Date.now()+relativeReminder.seconds*1000};
+    return {type:'reminder',name:'Reminder',label:relativeReminder.label,when:state.relativeReminder.when};
+  }
+  const timerSeconds=parseDuration(text);
+  if(timerSeconds&&/timer|focus|countdown|meditat|study|break|\b\d+\s*(?:min|sec|hr)/.test(lower))return {type:'timer',name:'Focus mode',seconds:timerSeconds};
   const split=lower.match(/(?:split|divide|share)\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:between|among|by|with)\s*(\d+)/);
   if(split&&Number(split[2])>0)return {type:'split',name:'Fair split',amount:Number(split[1].replace(/,/g,'')),people:Number(split[2])};
   const calc=calculate(text);
@@ -162,6 +173,8 @@ function detect(input){
   if(/\b(?:black|dark|night|starless)\s+sky\b|\bsky\s+at\s+night\b/.test(lower))return {type:'night',name:'Black sky',palette:['#121b34','#080e20','#02040d']};
   if(/\bminecraft\b.*\bdiamond\b|\bdiamond\b.*\bminecraft\b/.test(lower)){const values=state.colorOverride??{h:181,s:72,l:43};return {type:'pixel',name:'Minecraft diamond',palette:shadePalette(values),values}}
   if(/sunset|sunrise|golden hour|dusk|dawn/.test(lower))return {type:'sunset',name:/sunrise|dawn/.test(lower)?'First light':'Golden hour',palette:/purple/.test(lower)?palettes.purple:/pink/.test(lower)?palettes.pink:palettes.orange};
+  const objectPlan=localObjectPlan(text);
+  if(objectPlan){const values=state.colorOverride??colourValues(objectPlan.colour);return {type:animals.has(objectPlan.subject)?'creature':'emoji',name:`${titleCase(objectPlan.colour)} ${objectPlan.subject}`,subject:objectPlan.subject,emoji:objectPlan.emoji,coloured:true,palette:shadePalette(values),values,bg:shadePalette(values)[0],ink:'#24182d'}}
   const object=objects.find(x=>x.re.test(lower));
   if(object){const objectColour=pickColour(text),values=objectColour?state.colorOverride??colourValues(objectColour):null;return {type:'emoji',...object,coloured:!!values,palette:values?shadePalette(values):null,values}}
   const found=findEmoji(text);
@@ -170,7 +183,7 @@ function detect(input){
   const colourOnly=colour&&lower.replace(new RegExp(`\\b${colour}\\b`,'i'),'').replace(/\b(?:a|the|make|it|my|show|me|please|pure|deep|bright|dark|light)\b/g,'').trim()==='';
   if(colour&&(colourOnly||/\b(?:colou?r|shade|palette|background|wallpaper)\b/.test(lower))){const values=state.colorOverride??colourValues(colour);return {type:'color',name:`${titleCase(colour)} colour`,palette:shadePalette(values),values,emoji:glyphForColour(colour,values)}}
   if(/ocean|sea|beach|water/.test(lower))return {type:'color',name:'Blue hour',palette:palettes.blue};
-  if(state.aiScene?.query===text)return {type:state.aiScene.kind==='answer'?'ai-answer':'ai-visual',name:'Made for this prompt',palette:state.aiScene.colors,title:state.aiScene.title,description:state.aiScene.description,emoji:state.aiScene.emoji,query:text};
+  if(state.aiScene?.query===text){const plan=state.aiScene.plan;return {type:plan.action==='answer'?'ai-answer':'ai-visual',name:'Made for this prompt',palette:plan.colors||uniquePalette(text),title:plan.title||titleCase(plan.subject)||'Your idea',description:plan.description,emoji:plan.emoji,query:text}}
   return {type:'search',name:'Explore this',palette:uniquePalette(lower),query:text};
 }
 const diamondArtwork=className=>`<svg class="${className}" viewBox="0 0 280 280" aria-hidden="true" shape-rendering="crispEdges"><path fill="#135866" d="M82 24h116v24h34v34h24v116h-24v34h-34v24H82v-24H48v-34H24V82h24V48h34z"/><path fill="#48e7e6" d="M82 48h116v34h34v116h-34v34H82v-34H48V82h34z"/><path fill="#b6ffff" d="M82 48h116v34H82zM48 82h34v116H48zM82 82h34v34H82z"/><path fill="#20aeba" d="M198 82h34v116h-34zM82 198h116v34H82zM116 116h82v82h-82z"/><path fill="#6ff9ee" d="M116 82h82v34h-82zM82 116h34v82H82z"/><path fill="#fff" d="M82 82h34v34H82z"/></svg>`;
@@ -257,7 +270,7 @@ function saveList(scene){
   localStorage.setItem('dock-list',JSON.stringify(state.savedList));
 }
 function result(scene){
-  const label=`<div class="result-label"><span class="live-dot"></span>${esc(scene.name.toUpperCase())}<span>/ LIVE OBJECT 001</span></div>`;
+  const label=`<div class="result-label"><span class="live-dot"></span>${esc(scene.name.toUpperCase())}<span>${scene.remembered?`<button class="forget-teaching" data-action="forget-teaching" data-learned-from="${esc(scene.learnedFrom)}" aria-label="Forget this interpretation">${scene.similar?'LEARNED MATCH':'REMEMBERED'} · FORGET ↗</button>`:'/ LIVE OBJECT 001'}</span></div>`;
   if(scene.type==='india-map'||scene.type==='world-map')return mapShell(scene.type);
   if(scene.type==='trip'){const [start,end]=state.tripDraft?.place===scene.place?[state.tripDraft.start,state.tripDraft.end]:tripDates();const minimum=todayKey();return `<section class="result-card trip-card">${label}<div class="trip-title"><div><h2>Plan a trip to ${esc(scene.place)}.</h2><p>Choose your dates and keep the plan in Your Plans.</p></div><span>✈</span></div><div class="trip-dates"><div>${tripDateControls('start',start,minimum)}</div><span>→</span><div>${tripDateControls('end',end,start)}</div></div><p class="trip-error" role="alert"></p><button class="primary-button" data-action="save-trip">SAVE TRIP</button><div class="trip-calendar-label">YOUR TRAVEL DATES</div>${calendarPanel()}</section>`}
   if(scene.type==='games-hub')return `<section class="result-card game-card">${label}<h2>Pick a little game.</h2><p>Three quick games to play right here.</p><div class="game-hub">${[['✊','Rock paper scissors','rock paper scissors'],['♠','Blackjack','blackjack'],['⚄','Dice','roll 2d6']].map(([icon,title,prompt])=>`<button data-command="${prompt}"><span>${icon}</span><strong>${title}</strong><i>↗</i></button>`).join('')}</div></section>`;
@@ -272,7 +285,7 @@ function result(scene){
   if(['sunset','night','sky','aurora','color'].includes(scene.type))return `<section class="result-card">${label}<div class="result-main"><div><h2>${scene.type==='sunset'?'A sky, on demand.':scene.type==='night'?'A sky after dark.':scene.type==='aurora'?'The lights are moving.':scene.type==='sky'?'Your sky, your shade.':'The room changed colour.'}</h2><p>${scene.type==='sky'||scene.type==='color'?'Tune the shade below and watch the whole page change.':'Your words become the atmosphere. Keep typing to shift it again.'}</p></div><button data-action="copy" class="secondary-button">${icon('copy',16)} COPY COLOURS</button></div><div class="swatches">${scene.palette.map(c=>`<div style="background:${c}"><span>${c.toUpperCase()}</span></div>`).join('')}</div>${scene.values?mixerPanel(scene.values):''}</section>`;
   if(scene.type==='emoji'||scene.type==='creature')return `<section class="result-card">${label}<div class="result-main"><div><h2>${scene.type==='creature'?`Meet the ${esc(scene.subject)}.`:`A whole world of ${esc(scene.emoji)}`}</h2><p>The background picked up the subject of your words.</p></div><div class="emoji-preview" aria-hidden="true">${esc(scene.emoji)}</div><div class="topic-links"><a href="https://www.google.com/search?q=${encodeURIComponent(state.text)}" target="_blank" rel="noopener noreferrer">GOOGLE SEARCH ↗</a><a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(state.text)}" target="_blank" rel="noopener noreferrer">IMAGES ↗</a></div></div></section>`;
   if(scene.type==='pixel')return `<section class="result-card">${label}<div class="result-main"><div><h2>A diamond from another world.</h2><p>Change the backdrop shade to suit your gem.</p></div><div class="gem-preview">${diamondArtwork('gem-preview-svg')}</div><div class="topic-links"><a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(state.text)}" target="_blank" rel="noopener noreferrer">EXPLORE IMAGES ↗</a></div></div><div class="swatches">${scene.palette.map(c=>`<div style="background:${c}"><span>${c.toUpperCase()}</span></div>`).join('')}</div><button data-action="copy" class="secondary-button palette-copy">${icon('copy',16)} COPY COLOURS</button>${mixerPanel(scene.values)}</section>`;
-  if(scene.type==='search')return `<section class="result-card">${label}<div class="result-main"><div><h2>Let’s explore ${esc(scene.query)}.</h2><p>DOCK doesn’t have a scene for this yet. Open search results, images, or videos for this exact phrase.</p></div><div class="topic-links"><a href="https://www.google.com/search?q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">GOOGLE SEARCH ↗</a><a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">IMAGES ↗</a><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">VIDEOS ↗</a></div></div></section>`;
+  if(scene.type==='search')return `<section class="result-card">${label}<div class="result-main"><div><h2>Let’s explore ${esc(scene.query)}.</h2><p>DOCK doesn’t have a scene for this yet. Open search results, images, or videos for this exact phrase.</p></div><div class="topic-links"><a href="https://www.google.com/search?q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">GOOGLE SEARCH ↗</a><a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">IMAGES ↗</a><a href="https://www.youtube.com/results?search_query=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">VIDEOS ↗</a></div></div><form class="teach-form" id="teach-form"><label for="teach-target">SHOW THIS INSTEAD NEXT TIME</label><div><input id="teach-target" maxlength="100" placeholder="Try an equivalent prompt, like a red car" aria-label="Equivalent prompt"><button type="submit">TEACH DOCK ↗</button></div><small>Saved in this browser only.</small></form></section>`;
   if(scene.type==='ai-visual'||scene.type==='ai-answer')return `<section class="result-card">${label}<div class="result-main"><div><h2>${esc(scene.title)}</h2><p>${esc(scene.description)}</p></div><div class="topic-links"><a href="https://www.google.com/search?q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">GOOGLE SEARCH ↗</a><a href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(scene.query)}" target="_blank" rel="noopener noreferrer">IMAGES ↗</a></div></div></section>`;
   if(scene.type==='clock')return '';
   if(scene.type==='calendar')return `<section class="result-card">${label}<div class="result-main"><div><h2>Your calendar.</h2><p>Events and reminders in India Standard Time.</p></div><div id="clock-readout" class="calendar-time">${inIndia(new Date(),{hour:'2-digit',minute:'2-digit',hour12:true})} IST</div></div>${calendarPanel()}${reminderList()}</section>`;
@@ -286,7 +299,7 @@ function render(focus=false,cursor=null){
   const scene=detect(state.text);
   saveList(scene);
   const palette=scene.palette;
-  const liveResult=['list','color','sky','search','aurora','pixel','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
+  const liveResult=['list','color','sky','search','aurora','pixel','emoji','creature','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
   app.innerHTML=`<div class="world ${scene.type==='search'?'explore':scene.type} ${scene.coloured?'coloured':''} ${scene.type==='weather'?`weather-${scene.data?.condition||'cloudy'}`:''} ${state.committed||liveResult?'committed':''}" style="${palette?`--c1:${palette[0]};--c2:${palette[1]};--c3:${palette[2]};`:''}${scene.type==='emoji'||scene.type==='creature'?`--object-bg:${scene.bg};--object-ink:${scene.ink};`:''}">
     <div class="scene">${environment(scene)}</div><div class="noise"></div>
     <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
@@ -294,9 +307,10 @@ function render(focus=false,cursor=null){
     <main class="stage">
       <div class="core"><h1 class="draggable-headline" aria-label="Drag individual words; each returns after three seconds">${draggableWords(scene.type==='idle'?'What should this<br><em>become?</em>':scene.type==='sunset'?'There’s a sunset<br><em>in your words.</em>':scene.type==='night'?'A darker sky.<br><em>Just as you asked.</em>':scene.type==='sky'?'Paint the sky.<br><em>Make it yours.</em>':scene.type==='aurora'?'Let the lights<br><em>dance.</em>':scene.type==='pixel'?'A pixel world.<br><em>One diamond.</em>':scene.type==='search'?'Curiosity looks<br><em>good here.</em>':scene.type==='ai-visual'?'Your thought.<br><em>A new world.</em>':scene.type==='ai-answer'?'A question.<br><em>An answer.</em>':scene.type==='clock'?'Time is yours<br><em>to play with.</em>':scene.type==='calendar'?'Your days,<br><em>in view.</em>':scene.type==='reminder'?'Keep it<br><em>on your mind.</em>':scene.type==='color'?'Find your<br><em>perfect shade.</em>':scene.type==='emoji'?`You said ${scene.emoji}<br><em>We heard a world.</em>`:scene.type==='creature'?`Meet the ${esc(scene.subject)}.<br><em>It’s everywhere.</em>`:scene.type==='timer'?'Time to make<br><em>time.</em>':scene.type==='trip'?'The next place,<br><em>on your calendar.</em>':(scene.type.startsWith('game-')||scene.type==='games-hub')?'A little play,<br><em>right here.</em>':scene.type==='split'||scene.type==='calc'?'Numbers in.<br><em>Clarity out.</em>':scene.type==='list'?'Consider it<br><em>on the list.</em>':scene.type==='greeting'?'Good to see<br><em>you here.</em>':scene.type==='weather'?'The sky has<br><em>a story.</em>':scene.type==='place-time'?'Around the world,<br><em>right now.</em>':scene.type==='flag'?'Find the flag.<br><em>Follow the story.</em>':scene.type==='india-map'||scene.type==='world-map'?'A world to<br><em>explore.</em>':'Words become<br><em>worlds.</em>')}</h1><p class="subtitle">Type a thought. Speak an idea. Watch the interface become it.</p>
         <div class="search ${state.listening?'listening':''} ${scene.type==='list'?'with-decor':''}"><span class="search-spark">${icon('spark',23)}</span><div class="prompt-wrap">${scene.type==='list'?`<div class="prompt-mirror" aria-hidden="true"><span class="prompt-mirror-text">${decoratedPrompt(scene)}</span></div>`:''}<input id="prompt" aria-label="Describe what you want" autocomplete="off" spellcheck="false" placeholder="Try ‘a warm orange sunset’…" value="${esc(state.text)}"></div><button class="mic ${state.listening?'active':''}" data-action="voice" aria-label="${state.listening?'Stop voice input':'Use voice input'}">${icon(state.listening?'stop':'mic',20)}</button><button class="go" data-action="go" aria-label="Create from input">${icon('arrow',22)}</button></div>
-        ${commandPicker()}<div class="input-meta"><span>${state.listening?'● LISTENING — SPEAK NOW':state.notice?esc(state.notice):'↵ ENTER TO CREATE  /  🎙 SPEAK INSTEAD'}</span></div>
+        ${commandPicker()}<div class="input-meta"><span>${state.listening?'● LISTENING — SPEAK NOW':state.notice?esc(state.notice):'↵ ENTER TO CREATE  /  🎙 SPEAK INSTEAD'}</span>${state.text.trim().length>2&&scene.type!=='search'?'<button class="teach-toggle" data-action="teach-toggle" aria-label="Correct what DOCK understood">CORRECT THIS ↗</button>':''}</div>
         ${(state.committed||liveResult)&&state.text.trim()&&scene.type!=='clock'?`<div class="result-wrap">${result(scene)}</div>`:scene.type==='clock'?'':`<div class="examples"><span>TRY A SPARK</span>${Array.from({length:4},(_,i)=>sparks[(state.suggestionOffset+i)%sparks.length]).map(x=>`<button data-example="${esc(x)}">${esc(x)} <span>↗</span></button>`).join('')}</div>`}
       </div></main>${queuePanel()}
+    ${state.teachOpen?`<div class="teach-overlay" role="presentation"><section class="teach-dialog" role="dialog" aria-modal="true" aria-labelledby="teach-heading"><button class="teach-close" data-action="teach-close" aria-label="Close correction">×</button><small>TEACH DOCK / YOUR BROWSER</small><h2 id="teach-heading">What did you mean?</h2><p>Give this phrase an equivalent DOCK command. Try “a red car”, “2 min timer”, “buy milk and eggs”, or “indian map”.</p><form id="teach-dialog-form"><label for="teach-dialog-target">SHOW THIS INSTEAD</label><div><input id="teach-dialog-target" maxlength="100" placeholder="Type a working DOCK prompt" autocomplete="off" required><button type="submit">REMEMBER ↗</button></div><span id="teach-error" role="alert"></span></form><small>You can forget this correction later. Saved only in this browser.</small></section></div>`:''}
     ${state.alert?`<div class="reminder-toast" role="alert"><span>⏰ ${esc(state.alert)}</span><button data-action="dismiss-alert" aria-label="Dismiss reminder">${icon('close',16)}</button></div>`:''}
   </div>`;
   bind();
@@ -391,6 +405,7 @@ function queueWeather(scene){
 }
 function queueInterpret(){
   clearTimeout(aiRender);
+  if(import.meta.env.BASE_URL!=='/')return;
   if(state.aiUnavailable||detect(state.text).type!=='search'||state.text.trim().length<4)return;
   const query=state.text.trim();
   aiRender=setTimeout(async()=>{
@@ -401,11 +416,30 @@ function queueInterpret(){
       if(response.status===503){state.aiUnavailable=true;return}
       if(!response.ok)return;
       const data=await response.json();
-      if(state.text.trim()!==query||!['visual','answer'].includes(data.kind))return;
-      state.aiScene={query,kind:data.kind,title:String(data.title||''),description:String(data.description||''),emoji:String(data.emoji||''),colors:Array.isArray(data.colors)?data.colors:uniquePalette(query)};
+      const plan=validateModelPlan(data);
+      if(state.text.trim()!==query||!plan)return;
+      state.aiScene={query,plan};
       const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);
     }catch(error){if(error.name!=='AbortError')state.aiUnavailable=true}
   },450);
+}
+function saveTeaching(target,errorNode){
+  const scene=detect(target,true);
+  if(!target||target.trim().toLowerCase()===state.text.trim().toLowerCase()||!teachableTypes.has(scene.type)){
+    const message='Enter a different prompt DOCK already understands, such as “2 min timer”.';
+    if(errorNode)errorNode.textContent=message;
+    state.notice='TRY A DIFFERENT WORKING DOCK PROMPT';
+    const status=document.querySelector('.input-meta span');if(status)status.textContent=state.notice;
+    return;
+  }
+  const phrase=state.text.trim().toLowerCase();
+  state.teachings=[...state.teachings.filter(item=>item.phrase!==phrase),{phrase,target:target.trim()}].slice(-100);
+  localStorage.setItem('dock-teachings',JSON.stringify(state.teachings));
+  state.teachOpen=false;state.listItems=null;state.checked.clear();state.aiScene=null;
+  if(scene.type==='timer'){state.initial=scene.seconds;state.seconds=scene.seconds}
+  if(scene.type==='trip'){const [start,end]=tripDates();state.tripDraft={place:scene.place,start,end}}
+  state.notice='DOCK WILL REMEMBER THIS IN THIS BROWSER';
+  render();
 }
 function toggleVoice(){
   if(state.listening){speech?.stop();state.listening=false;render(true);return}
@@ -419,7 +453,13 @@ function toggleVoice(){
 }
 function bind(){
   const input=document.querySelector('#prompt');
-  input.oninput=e=>{const cursor=e.target.selectionStart;state.text=e.target.value;state.committed=false;state.notice='';state.checked.clear();state.listItems=null;state.colorOverride=null;state.aiScene=null;aiRequest?.abort();weatherController?.abort();placeTimeController?.abort();clearTimeout(weatherTimer);clearTimeout(placeTimeTimer);clearTimeout(aiRender);const mirror=document.querySelector('.prompt-mirror-text');if(mirror)mirror.textContent=state.text;clearTimeout(inputRender);inputRender=setTimeout(()=>{render(true,cursor);queueInterpret()},160)};
+  document.querySelector('#teach-form')?.addEventListener('submit',event=>{event.preventDefault();saveTeaching(document.querySelector('#teach-target').value,document.querySelector('.teach-form small'))});
+  document.querySelector('[data-action="teach-toggle"]')?.addEventListener('click',()=>{state.teachOpen=true;render();document.querySelector('#teach-dialog-target')?.focus()});
+  document.querySelector('[data-action="teach-close"]')?.addEventListener('click',()=>{state.teachOpen=false;render()});
+  document.querySelector('#teach-dialog-form')?.addEventListener('submit',event=>{event.preventDefault();saveTeaching(document.querySelector('#teach-dialog-target').value,document.querySelector('#teach-error'))});
+  document.querySelector('.teach-overlay')?.addEventListener('keydown',event=>{if(event.key==='Escape'){state.teachOpen=false;render(true)}});
+  document.querySelector('[data-action="forget-teaching"]')?.addEventListener('click',()=>{const phrase=document.querySelector('[data-action="forget-teaching"]')?.dataset.learnedFrom||state.text.trim().toLowerCase();state.teachings=state.teachings.filter(item=>item.phrase!==phrase);localStorage.setItem('dock-teachings',JSON.stringify(state.teachings));state.notice='INTERPRETATION FORGOTTEN';render()});
+  input.oninput=e=>{const cursor=e.target.selectionStart;state.text=e.target.value;state.committed=false;state.notice='';state.teachOpen=false;state.checked.clear();state.listItems=null;state.colorOverride=null;state.aiScene=null;aiRequest?.abort();weatherController?.abort();placeTimeController?.abort();clearTimeout(weatherTimer);clearTimeout(placeTimeTimer);clearTimeout(aiRender);const mirror=document.querySelector('.prompt-mirror-text');if(mirror)mirror.textContent=state.text;clearTimeout(inputRender);inputRender=setTimeout(()=>{render(true,cursor);queueInterpret()},160)};
   input.onscroll=()=>{const mirror=document.querySelector('.prompt-mirror-text');if(mirror)mirror.style.transform=`translateX(-${input.scrollLeft}px)`};
   input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(inputRender);commit()}if(e.key==='Escape'){clearTimeout(inputRender);clearTimeout(aiRender);aiRequest?.abort();state.text='';state.committed=false;state.aiScene=null;state.colorOverride=null;render(true)}};
   document.querySelectorAll('[data-command]').forEach(b=>b.onclick=()=>{state.text=b.dataset.command;state.committed=true;state.tripDraft=null;render(true)});
