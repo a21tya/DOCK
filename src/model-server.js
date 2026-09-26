@@ -18,13 +18,17 @@ export async function interpretPrompt(prompt,{key,model='gemini-3.1-flash-lite',
   try{
     const upstream=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
       method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},
-      body:JSON.stringify({contents:[{parts:[{text:instruction}]}],generationConfig:{responseFormat:{text:{mimeType:'application/json',schema}},maxOutputTokens:350}}),
+      body:JSON.stringify({contents:[{parts:[{text:instruction}]}],generationConfig:{responseFormat:{text:{mimeType:'application/json',schema}},maxOutputTokens:1024}}),
       signal:AbortSignal.timeout(12000),
     });
-    if(!upstream.ok)return {status:502,body:{error:'MODEL_UNAVAILABLE'}};
+    if(!upstream.ok){
+      console.error('DOCK_MODEL_UPSTREAM_STATUS',upstream.status);
+      return {status:502,body:{error:'MODEL_UNAVAILABLE'}};
+    }
     const payload=await upstream.json();
     const raw=payload.candidates?.[0]?.content?.parts?.map(part=>part.text||'').join('');
     const plan=validateModelPlan(JSON.parse(raw||'{}'));
+    if(!plan)console.error('DOCK_MODEL_INVALID_PLAN');
     return plan?{status:200,body:plan}:{status:502,body:{error:'INVALID_MODEL_PLAN'}};
-  }catch{return {status:502,body:{error:'MODEL_UNAVAILABLE'}}}
+  }catch(error){console.error('DOCK_MODEL_ERROR',error?.name||'unknown');return {status:502,body:{error:'MODEL_UNAVAILABLE'}}}
 }
