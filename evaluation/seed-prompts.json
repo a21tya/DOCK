@@ -1,0 +1,20 @@
+[
+  {"prompt":"a red car","intent":"show_object","subject":"car","colour":"red"},
+  {"prompt":"the colour of the car is red","intent":"show_object","subject":"car","colour":"red"},
+  {"prompt":"make the automobile red","intent":"show_object","subject":"car","colour":"red"},
+  {"prompt":"a blue bike","intent":"show_object","subject":"bicycle","colour":"blue"},
+  {"prompt":"paint a violet bicycle","intent":"show_object","subject":"bicycle","colour":"violet"},
+  {"prompt":"a pink bunny","intent":"show_object","subject":"rabbit","colour":"pink"},
+  {"prompt":"the dog should be green","intent":"show_object","subject":"dog","colour":"green"},
+  {"prompt":"white milk everywhere","intent":"show_object","subject":"milk","colour":"white"},
+  {"prompt":"an orange egg","intent":"show_object","subject":"egg","colour":"orange"},
+  {"prompt":"a purple house","intent":"show_object","subject":"house","colour":"purple"},
+  {"prompt":"a crimson car","intent":"show_object","subject":"car","colour":"crimson"},
+  {"prompt":"make the car the colour of sunset","intent":"show_object","subject":"car","colour":"sunset orange"},
+  {"prompt":"a teal spaceship","intent":"show_object","subject":"spaceship","colour":"teal"},
+  {"prompt":"a turquoise pangolin","intent":"show_object","subject":"pangolin","colour":"turquoise"},
+  {"prompt":"a black sky","intent":"show_atmosphere","subject":"sky","colour":"black"},
+  {"prompt":"northern lights over a lake","intent":"show_atmosphere","subject":"aurora","colour":"green"},
+  {"prompt":"a car that is not red","intent":"ambiguous","subject":"car","colour":null},
+  {"prompt":"a red car and a blue bike","intent":"ambiguous","subject":null,"colour":null}
+]
