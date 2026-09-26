@@ -18,7 +18,7 @@ test('hosted interpreter returns only a validated visual plan',async()=>{
   assert.equal(result.body.subject,'rabbit');
   assert.equal(request.options.headers['x-goog-api-key'],'test-secret');
   assert.equal(JSON.stringify(result.body).includes('test-secret'),false);
-  assert.equal(JSON.parse(request.options.body).generationConfig.responseFormat.text.mimeType,'application/json');
+  assert.equal(JSON.parse(request.options.body).generationConfig.responseMimeType,'application/json');
 });
 
 test('hosted interpreter rejects invalid model actions',async()=>{
