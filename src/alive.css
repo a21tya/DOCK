@@ -1,1 +1,1 @@
-.draggable-headline{position:relative}.alive-inline{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;z-index:2}
+.draggable-headline{position:relative}.alive-inline{position:absolute;left:-90px;top:-90px;pointer-events:none;z-index:2;max-width:none!important}.drag-word{transition:transform .65s cubic-bezier(.2,.8,.2,1),opacity .12s ease}
