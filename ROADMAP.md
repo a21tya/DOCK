@@ -16,6 +16,7 @@ DOCK is a local-first visual canvas with a hosted Gemini interpreter for unfamil
 
 - [x] Save explicit phrase corrections in the current browser and use them before the hosted model.
 - [x] Seed an intent evaluation set from real DOCK examples and record local coverage before adding more rules (`node scripts/evaluate-local.mjs`).
+- [x] Keep a separate held-out local routing set for objects, emoji subjects, timers, relative reminders, and lists (`node scripts/evaluate-heldout.mjs`).
 - [x] Add an export and delete control for the user's saved corrections.
 - [ ] Collect an opt-in, reviewed training set of prompt → expected intent and visual result; exclude private prompts by default.
 - [ ] Expand the evaluation set to cover dates, lists, safety boundaries, and model responses; keep separate training and held-out examples.

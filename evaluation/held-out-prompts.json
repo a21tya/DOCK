@@ -1,0 +1,18 @@
+[
+  {"prompt":"the bicycle should be green","kind":"object","subject":"bicycle","colour":"green"},
+  {"prompt":"a yellow house","kind":"object","subject":"house","colour":"yellow"},
+  {"prompt":"the puppy is pink","kind":"object","subject":"dog","colour":"pink"},
+  {"prompt":"a red car and blue bicycle","kind":"model"},
+  {"prompt":"a car without red paint","kind":"model"},
+  {"prompt":"surreal nostalgia in zero gravity","kind":"model"},
+  {"prompt":"a bioluminescent pangolin in a blizzard","kind":"model"},
+  {"prompt":"rabbit in a meadow","kind":"emoji","emoji":"🐇"},
+  {"prompt":"milk everywhere","kind":"emoji","emoji":"🥛"},
+  {"prompt":"a moonlit orchard of crystal foxes","kind":"emoji","emoji":"🦊"},
+  {"prompt":"remind me to call Mom in five minutes","kind":"relative-reminder","seconds":300},
+  {"prompt":"remind me in 15 minutes to leave","kind":"relative-reminder","seconds":900},
+  {"prompt":"I need eggs, milk and bread","kind":"list","items":["eggs","milk","bread"]},
+  {"prompt":"I want coffee and fruit","kind":"list","items":["coffee","fruit"]},
+  {"prompt":"set a two-minute timer","kind":"timer","seconds":120},
+  {"prompt":"25 min focus","kind":"timer","seconds":1500}
+]
