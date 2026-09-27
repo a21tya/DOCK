@@ -1,7 +1,8 @@
 import './alive.css';
 
 // The real headline becomes particles, one word at a time. No idle animation.
-export function mountAlive(headline){
+let lastAnimatedQuery='';
+export function mountAlive(headline,query=''){
   if(!headline||matchMedia('(prefers-reduced-motion: reduce)').matches)return ()=>{};
   const canvas=document.createElement('canvas');canvas.className='alive-inline';canvas.setAttribute('aria-hidden','true');headline.append(canvas);
   const ctx=canvas.getContext('2d');if(!ctx){canvas.remove();return ()=>{}}
@@ -40,5 +41,6 @@ export function mountAlive(headline){
   function leave(){pointer=null;leaving=performance.now()}
   headline.addEventListener('pointermove',move);headline.addEventListener('pointerleave',leave);headline.addEventListener('pointerdown',reset);
   const observer=new ResizeObserver(reset);observer.observe(headline);
-  return ()=>{disposed=true;reset();observer.disconnect();headline.removeEventListener('pointermove',move);headline.removeEventListener('pointerleave',leave);headline.removeEventListener('pointerdown',reset);canvas.remove()};
+  const reveal=setTimeout(()=>{if(query&&query!==lastAnimatedQuery&&!disposed){lastAnimatedQuery=query;const word=headline.querySelector('.drag-word');if(word){start(word);for(const p of particles){p.x+=Math.random()*100-50;p.y+=Math.random()*80-40}leave()}}},300);
+  return ()=>{clearTimeout(reveal);disposed=true;reset();observer.disconnect();headline.removeEventListener('pointermove',move);headline.removeEventListener('pointerleave',leave);headline.removeEventListener('pointerdown',reset);canvas.remove()};
 }

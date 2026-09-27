@@ -296,8 +296,17 @@ function render(focus=false,cursor=null){
     ${state.teachOpen?`<div class="teach-overlay" role="presentation"><section class="teach-dialog" role="dialog" aria-modal="true" aria-labelledby="teach-heading"><button class="teach-close" data-action="teach-close" aria-label="Close correction">×</button><small>TEACH DOCK / YOUR BROWSER</small><h2 id="teach-heading">What did you mean?</h2><p>Give this phrase an equivalent DOCK command. Try “a red car”, “2 min timer”, “buy milk and eggs”, or “indian map”.</p><form id="teach-dialog-form"><label for="teach-dialog-target">SHOW THIS INSTEAD</label><div><input id="teach-dialog-target" maxlength="100" placeholder="Type a working DOCK prompt" autocomplete="off" required><button type="submit">REMEMBER ↗</button></div><span id="teach-error" role="alert"></span></form><div class="teach-library"><small>${state.teachings.length} SAVED CORRECTION${state.teachings.length===1?'':'S'} · ONLY IN THIS BROWSER</small><div><button data-action="export-teachings" ${state.teachings.length?'':'disabled'}>EXPORT JSON ↗</button><button data-action="clear-teachings" ${state.teachings.length?'':'disabled'}>DELETE ALL</button></div></div></section></div>`:''}
     ${state.alert?`<div class="reminder-toast" role="alert"><span>⏰ ${esc(state.alert)}</span><button data-action="dismiss-alert" aria-label="Dismiss reminder">${icon('close',16)}</button></div>`:''}
   </div>`;
+  const livingQuery=state.text.trim();
+  const queryArt=['search','ai-visual','emoji','creature','color','sky','sunset','night','aurora','pixel'].includes(scene.type)&&livingQuery&&!livingQuery.startsWith('/');
+  if(queryArt){
+    const headline=document.querySelector('.draggable-headline');
+    headline.classList.add('query-headline');
+    headline.innerHTML=draggableWords(esc(livingQuery));
+    headline.style.setProperty('--query-size',`${livingQuery.length>50?28:livingQuery.length>25?38:livingQuery.length>14?48:66}px`);
+    document.querySelector('.subtitle').textContent='Your words, alive. Move over them to scatter. Drag to play.';
+  }
   bind();
-  disposeAlive=mountAlive(document.querySelector('.draggable-headline'));
+  disposeAlive=mountAlive(document.querySelector('.draggable-headline'),queryArt?livingQuery:'');
   if(scene.type==='india-map'||scene.type==='world-map')mountMap(scene.type,scene.country);
   if(scene.type==='weather')queueWeather(scene);
   if(scene.type==='place-time')queuePlaceTime(scene);

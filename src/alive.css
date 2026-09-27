@@ -1,1 +1,4 @@
 .draggable-headline{position:relative}.alive-inline{position:absolute;left:-90px;top:-90px;pointer-events:none;z-index:2;max-width:none!important}.drag-word{transition:transform .65s cubic-bezier(.2,.8,.2,1),opacity .12s ease}
+
+.world .core .query-headline{display:block!important;font-size:clamp(28px,5vw,var(--query-size,66px));line-height:1.08;letter-spacing:-.045em;margin-bottom:14px;overflow-wrap:anywhere;text-wrap:balance}.query-headline .drag-word{max-width:100%;overflow-wrap:anywhere;color:var(--accent,#ffc2ea)}
+@media(max-width:1100px) and (min-width:761px){.world.committed .core .query-headline{font-size:clamp(25px,3vw,38px);margin:0 0 12px}}
