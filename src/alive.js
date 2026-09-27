@@ -1,46 +1,39 @@
 import './alive.css';
 
-// The real headline becomes particles, one word at a time. No idle animation.
-let lastAnimatedQuery='';
-export function mountAlive(headline,query=''){
-  if(!headline||matchMedia('(prefers-reduced-motion: reduce)').matches)return ()=>{};
-  const canvas=document.createElement('canvas');canvas.className='alive-inline';canvas.setAttribute('aria-hidden','true');headline.append(canvas);
-  const ctx=canvas.getContext('2d');if(!ctx){canvas.remove();return ()=>{}}
-  const padding=90;let frame=0,last=0,active=null,particles=[],pointer=null,leaving=0,disposed=false;
-  function reset(){if(active)active.style.opacity='';active=null;particles=[];pointer=null;ctx.clearRect(0,0,canvas.width,canvas.height);cancelAnimationFrame(frame);frame=0}
-  function start(word){
-    if(active===word){leaving=0;return}reset();
-    const box=headline.getBoundingClientRect(),r=word.getBoundingClientRect();if(!r.width||!r.height)return;
-    const dpr=Math.min(devicePixelRatio||1,2),w=box.width+padding*2,h=box.height+padding*2;
-    canvas.style.width=`${w}px`;canvas.style.height=`${h}px`;canvas.width=Math.ceil(w*dpr);canvas.height=Math.ceil(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
-    const s=getComputedStyle(word),mask=document.createElement('canvas');mask.width=Math.ceil(r.width+12);mask.height=Math.ceil(r.height+12);const m=mask.getContext('2d');
-    m.font=`${s.fontStyle} ${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;m.letterSpacing=s.letterSpacing;m.fillStyle='#fff';m.textBaseline='alphabetic';
-    const metrics=m.measureText(word.textContent),fontHeight=metrics.fontBoundingBoxAscent+metrics.fontBoundingBoxDescent;
-    const baseline=Number.isFinite(fontHeight)?(r.height-fontHeight)/2+metrics.fontBoundingBoxAscent:r.height*.79;
-    m.fillText(word.textContent,6,baseline+6);
-    const pixels=m.getImageData(0,0,mask.width,mask.height).data;
-    const step=r.width>400?3:2;
-    for(let y=0;y<mask.height;y+=step)for(let x=0;x<mask.width;x+=step){const alpha=pixels[(y*mask.width+x)*4+3]/255;if(alpha>.25){const tx=r.left-box.left+x-6+padding,ty=r.top-box.top+y-6+padding;particles.push({x:tx,y:ty,tx,ty,vx:0,vy:0,alpha})}}
-    if(!particles.length)return;
-    active=word;active.style.opacity='0';canvas.style.color=s.color;leaving=0;last=performance.now();frame=requestAnimationFrame(draw);
+export function openAlive(initial='DOCK'){
+  if(document.querySelector('.alive-room'))return;
+  const previous=document.activeElement,room=document.createElement('dialog');room.className='alive-room';
+  room.innerHTML='<canvas aria-hidden="true"></canvas><header><strong>DOCK<span>.</span><small> / LIVING TYPE</small></strong><button aria-label="Close living type">BACK TO DOCK ↗</button></header><div class="alive-caption">EVERY WORD HAS A PULSE.</div><form><input aria-label="Words to bring alive" maxlength="32" placeholder="Give the particles a new thought…"><button>TRANSFORM ↗</button></form><footer>MOVE TO SCATTER · PRESS TO PULL · RELEASE TO REFORM</footer>';
+  document.body.append(room);room.showModal();
+  const canvas=room.querySelector('canvas'),ctx=canvas.getContext('2d'),input=room.querySelector('input');
+  if(!ctx){room.remove();return}
+  let w=0,h=0,particles=[],frame=0,word=String(initial||'DOCK').slice(0,32),pointer={x:-9999,y:-9999,down:false},last=0;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function shape(){
+    w=room.clientWidth;h=room.clientHeight;const ratio=Math.min(devicePixelRatio||1,2);canvas.width=w*ratio;canvas.height=h*ratio;ctx.setTransform(ratio,0,0,ratio,0,0);
+    const mask=document.createElement('canvas');mask.width=w;mask.height=h;const m=mask.getContext('2d');
+    let size=Math.min(w*.17,190);m.font=`700 ${size}px "Space Grotesk", sans-serif`;while(m.measureText(word).width>w*.84&&size>16){size-=2;m.font=`700 ${size}px "Space Grotesk", sans-serif`}
+    m.fillStyle='white';m.textAlign='center';m.textBaseline='middle';m.fillText(word,w/2,h*.46);
+    const data=m.getImageData(0,0,w,h).data,points=[],step=Math.max(4,Math.ceil(w/260));
+    for(let y=Math.max(0,Math.floor(h*.46-size));y<Math.min(h,h*.46+size);y+=step)for(let x=0;x<w;x+=step)if(data[(y*w+x)*4+3]>100)points.push({tx:x,ty:y});
+    particles=points.map((p,i)=>({...p,x:particles[i]?.x??Math.random()*w,y:particles[i]?.y??Math.random()*h,vx:0,vy:0,hue:270+100*p.tx/w}));
   }
-  function draw(t){
-    if(disposed)return;
-    const dt=Math.min((t-last)/16.67,2);last=t;ctx.clearRect(0,0,canvas.width,canvas.height);ctx.fillStyle=canvas.style.color;
-    let energy=0;
+  function draw(time){
+    const dt=Math.min((time-last)/16.67||1,2);last=time;ctx.fillStyle='#090b19';ctx.fillRect(0,0,w,h);
+    const glow=ctx.createRadialGradient(w/2,h*.46,0,w/2,h*.46,w*.6);glow.addColorStop(0,'#252044');glow.addColorStop(1,'#090b19');ctx.fillStyle=glow;ctx.fillRect(0,0,w,h);
     for(const p of particles){
-      if(pointer){const dx=p.x-pointer.x,dy=p.y-pointer.y,d=Math.hypot(dx,dy);if(d<70&&d>.1){const force=(1-d/70)*2.8;p.vx+=dx/d*force*dt;p.vy+=dy/d*force*dt}}
-      p.vx+=(p.tx-p.x)*.032*dt;p.vy+=(p.ty-p.y)*.032*dt;p.vx*=Math.pow(.82,dt);p.vy*=Math.pow(.82,dt);p.x+=p.vx*dt;p.y+=p.vy*dt;energy+=Math.abs(p.x-p.tx)+Math.abs(p.y-p.ty);
-      ctx.globalAlpha=p.alpha;ctx.beginPath();ctx.arc(p.x,p.y,1.15,0,Math.PI*2);ctx.fill();
+      if(reduced){p.x=p.tx;p.y=p.ty}else{
+        p.vx+=(p.tx-p.x)*.012*dt;p.vy+=(p.ty-p.y)*.012*dt;
+        const dx=p.x-pointer.x,dy=p.y-pointer.y,d=Math.hypot(dx,dy);if(d<150&&d>0){const force=(1-d/150)*(pointer.down?-1.8:2.6);p.vx+=dx/d*force*dt;p.vy+=dy/d*force*dt}
+        p.vx*=Math.pow(.88,dt);p.vy*=Math.pow(.88,dt);p.x+=p.vx*dt;p.y+=p.vy*dt;
+      }
+      ctx.fillStyle=`hsl(${p.hue} 90% ${70+Math.sin(time*.001+p.tx*.01)*10}%)`;ctx.beginPath();ctx.arc(p.x,p.y,1.7,0,Math.PI*2);ctx.fill();
     }
-    ctx.globalAlpha=1;
-    if(leaving&&(energy/particles.length<.15||t-leaving>1600)){reset();return}
     frame=requestAnimationFrame(draw);
   }
-  function move(e){if(e.buttons||e.pointerType==='touch')return;const word=e.target.closest('.drag-word');if(word&&headline.contains(word))start(word);if(!active)return;const r=headline.getBoundingClientRect();pointer={x:e.clientX-r.left+padding,y:e.clientY-r.top+padding};if(!word){pointer=null;if(!leaving)leaving=performance.now()}}
-  function leave(){pointer=null;leaving=performance.now()}
-  headline.addEventListener('pointermove',move);headline.addEventListener('pointerleave',leave);headline.addEventListener('pointerdown',reset);
-  const observer=new ResizeObserver(reset);observer.observe(headline);
-  const reveal=setTimeout(()=>{if(query&&query!==lastAnimatedQuery&&!disposed){lastAnimatedQuery=query;const word=headline.querySelector('.drag-word');if(word){start(word);for(const p of particles){p.x+=Math.random()*100-50;p.y+=Math.random()*80-40}leave()}}},300);
-  return ()=>{clearTimeout(reveal);disposed=true;reset();observer.disconnect();headline.removeEventListener('pointermove',move);headline.removeEventListener('pointerleave',leave);headline.removeEventListener('pointerdown',reset);canvas.remove()};
+  function close(){cancelAnimationFrame(frame);window.removeEventListener('resize',shape);room.close();room.remove();previous?.focus()}
+  room.querySelector('header button').onclick=close;room.addEventListener('cancel',e=>{e.preventDefault();close()});
+  canvas.onpointermove=e=>{const r=canvas.getBoundingClientRect();pointer.x=e.clientX-r.left;pointer.y=e.clientY-r.top};canvas.onpointerdown=e=>{canvas.setPointerCapture(e.pointerId);pointer.down=true;canvas.onpointermove(e)};canvas.onpointerup=canvas.onpointercancel=()=>{pointer.down=false};canvas.onpointerleave=()=>{pointer.x=-9999;pointer.down=false};
+  room.querySelector('form').onsubmit=e=>{e.preventDefault();if(input.value.trim()){word=input.value.trim();shape();input.value=''}};
+  window.addEventListener('resize',shape);shape();frame=requestAnimationFrame(draw);input.focus();
 }
