@@ -7,6 +7,7 @@ DOCK is a local-first visual canvas with a hosted Gemini interpreter for unfamil
 - [x] Show local scenes, tools, and search links without waiting for Gemini.
 - [x] Start model requests as soon as a prompt is submitted; overlap the typing debounce with the local preview.
 - [x] Reuse successful interpretations during the current session and show a clear progress state.
+- [x] Route incidental emoji words in longer prompts to Gemini while keeping direct emoji and familiar subjects instant.
 - [ ] Measure first result and final scene time for 30 familiar and 30 unfamiliar prompts on mobile and desktop.
 - [ ] Add a bounded retry for temporary model failures and useful error reporting without exposing the API key.
 - [ ] Keep a fast local intent path for the most common requests found in that test set.

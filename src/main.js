@@ -1,5 +1,5 @@
 import './style.css';
-import emojiKeywords from 'emojilib';
+import {findEmoji} from './emoji-intent.js';
 import {calculate} from './math.js';
 import {mapShell,mountMap,countryForPrompt} from './maps.js';
 import {commands,sparks,slashMatch,parseDice,randomInt,makeDeck,drawCard,handValue,tripDates,saveActivity} from './dock-features.js';
@@ -73,35 +73,8 @@ const objects=[
   {re:/\brain\b|storm/i,emoji:'💧',name:'Rain room',bg:'#8cbbe2',ink:'#1a3454'},
   {re:/\bfire\b|flames?/i,emoji:'🔥',name:'Firelight',bg:'#f0a274',ink:'#542722'}
 ];
-const preferredEmoji={milk:'🥛',rabbit:'🐇',bunny:'🐇',dog:'🐕',cat:'🐈',fox:'🦊',wolf:'🐺',lion:'🦁',tiger:'🐅',bear:'🐻',panda:'🐼',horse:'🐎',cow:'🐄',pig:'🐖',sheep:'🐑',goat:'🐐',elephant:'🐘',giraffe:'🦒',zebra:'🦓',monkey:'🐒',gorilla:'🦍',deer:'🦌',mouse:'🐁',rat:'🐀',squirrel:'🐿️',hedgehog:'🦔',koala:'🐨',kangaroo:'🦘',chicken:'🐓',duck:'🦆',owl:'🦉',eagle:'🦅',parrot:'🦜',penguin:'🐧',flamingo:'🦩',fish:'🐟',shark:'🦈',whale:'🐋',dolphin:'🐬',octopus:'🐙',crab:'🦀',turtle:'🐢',frog:'🐸',snake:'🐍',lizard:'🦎',butterfly:'🦋',bee:'🐝',ladybug:'🐞',ant:'🐜',spider:'🕷️',dragon:'🐉'};
-const animals=new Set(Object.keys(preferredEmoji).filter(word=>word!=='milk'));
-const emojiIndex=new Map();
-for(const [emoji,aliases] of Object.entries(emojiKeywords))for(const [priority,alias] of aliases.entries()){const key=alias.toLowerCase().replace(/_/g,' ');if(!emojiIndex.has(key)||priority===0)emojiIndex.set(key,emoji)}
-const allEmoji=new Set(Object.keys(emojiKeywords));
-const graphemes=new Intl.Segmenter(undefined,{granularity:'grapheme'});
-const ignoredWords=new Set(['a','an','the','i','me','my','you','your','want','need','show','make','create','find','search','for','of','in','on','with','some','something','background','wallpaper','picture','image','about','please','like','all','full','screen','cool','very','warm','big','small']);
-for(const colour of Object.keys(palettes))ignoredWords.add(colour);
+const animals=new Set(['rabbit','bunny','dog','cat','fox','wolf','lion','tiger','bear','panda','horse','cow','pig','sheep','goat','elephant','giraffe','zebra','monkey','gorilla','deer','mouse','rat','squirrel','hedgehog','koala','kangaroo','chicken','duck','owl','eagle','parrot','penguin','flamingo','fish','shark','whale','dolphin','octopus','crab','turtle','frog','snake','lizard','butterfly','bee','ladybug','ant','spider','dragon']);
 const titleCase=text=>text.replace(/\b\w/g,match=>match.toUpperCase());
-function findEmoji(text){
-  for(const {segment} of graphemes.segment(text))if(allEmoji.has(segment)||/[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(segment))return {emoji:segment,subject:emojiKeywords[segment]?.[0]?.replace(/_/g,' ')||'emoji',animal:false};
-  const words=text.toLowerCase().match(/[a-z]+/g)||[];
-  for(const raw of words){
-    const word=raw.replace(/s$/,'');
-    if(ignoredWords.has(raw))continue;
-    const emoji=preferredEmoji[raw]||preferredEmoji[word];
-    if(emoji)return {emoji,subject:raw,animal:animals.has(raw)||animals.has(word)};
-  }
-  for(let width=Math.min(4,words.length);width>=1;width--)for(let i=0;i<=words.length-width;i++){
-    if(ignoredWords.has(words[i])||CSS.supports('color',words[i]))continue;
-    const phrase=words.slice(i,i+width).join(' ');
-    const term=emojiIndex.has(phrase)?phrase:width===1?phrase.replace(/s$/,''):phrase;
-    if(term.length>2&&emojiIndex.has(term)){
-      const emoji=emojiIndex.get(term);
-      return {emoji,subject:term,animal:animals.has(term)||emojiKeywords[emoji]?.includes('animal')||emojiKeywords[emoji]?.includes('pet')};
-    }
-  }
-  return null;
-}
 function parseList(text){
   const natural=parseNaturalList(text);
   if(natural)return {items:natural,shopping:true};
@@ -175,7 +148,12 @@ function detect(input,skipMemory=false){
   if(/sunset|sunrise|golden hour|dusk|dawn/.test(lower))return {type:'sunset',name:/sunrise|dawn/.test(lower)?'First light':'Golden hour',palette:/purple/.test(lower)?palettes.purple:/pink/.test(lower)?palettes.pink:palettes.orange};
   const objectPlan=localObjectPlan(text);
   if(objectPlan){const values=state.colorOverride??colourValues(objectPlan.colour);return {type:animals.has(objectPlan.subject)?'creature':'emoji',name:`${titleCase(objectPlan.colour)} ${objectPlan.subject}`,subject:objectPlan.subject,emoji:objectPlan.emoji,coloured:true,palette:shadePalette(values),values,bg:shadePalette(values)[0],ink:'#24182d'}}
-  const object=objects.find(x=>x.re.test(lower));
+  const preferredSubject=findEmoji(text);
+  if(preferredSubject?.animal||preferredSubject?.subject==='milk'){
+    const objectColour=pickColour(text),values=objectColour?state.colorOverride??colourValues(objectColour):null;
+    return {type:preferredSubject.animal?'creature':'emoji',name:`${titleCase(preferredSubject.subject)} world`,subject:preferredSubject.subject,emoji:preferredSubject.emoji,bg:preferredSubject.animal?uniquePalette(preferredSubject.subject)[2]:'#f2ebe2',ink:preferredSubject.animal?'#fff6f5':'#33233f',coloured:!!values,palette:values?shadePalette(values):null,values};
+  }
+  const object=lower.match(/[a-z]+/g)?.length<=4||/\b(?:everywhere|wallpaper|background)\b/.test(lower)?objects.find(x=>x.re.test(lower)):null;
   if(object){const objectColour=pickColour(text),values=objectColour?state.colorOverride??colourValues(objectColour):null;return {type:'emoji',...object,coloured:!!values,palette:values?shadePalette(values):null,values}}
   const found=findEmoji(text);
   if(found){const objectColour=pickColour(text);const values=objectColour?state.colorOverride??colourValues(objectColour):null;return {type:found.animal?'creature':'emoji',name:found.animal?`${titleCase(found.subject)} world`:`${titleCase(found.subject)} scene`,subject:found.subject,emoji:found.emoji,bg:found.animal?uniquePalette(found.subject)[2]:found.subject==='milk'?'#f2ebe2':uniquePalette(found.subject)[0],ink:found.animal?'#fff6f5':'#33233f',coloured:!!values,palette:values?shadePalette(values):null,values}}
