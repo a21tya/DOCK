@@ -18,6 +18,7 @@ test('model plans must be known actions with valid visual colours',()=>{
   assert.equal(validateModelPlan({action:'run_code',colors:['#ffffff','#000000','#111111']}),null);
   assert.equal(validateModelPlan({action:'show_object',subject:'car',emoji:'🚗',colors:['red','#000000','#111111']}),null);
   assert.equal(validateModelPlan({action:'show_object',subject:'car',emoji:'🚗',colors:['#ffffff','#000000','#111111']})?.action,'show_object');
+  assert.equal(validateModelPlan([{action:'show_atmosphere',colors:['#ffffff','#000000','#111111','#222222']}])?.action,'show_atmosphere');
 });
 
 test('everyday timer and relative reminder wording',()=>{

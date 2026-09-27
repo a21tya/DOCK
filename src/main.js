@@ -1,5 +1,6 @@
 import './style.css';
 import {openField} from './field.js';
+import {createPlanCache} from './interpret-cache.js';
 import {findEmoji} from './emoji-intent.js';
 import {calculate} from './math.js';
 import {mapShell,mountMap,countryForPrompt} from './maps.js';
@@ -330,7 +331,10 @@ let inputRender;
 let aiRender;
 let aiRequest;
 let aiRequestQuery='';
-const aiCache=new Map();
+let sceneStorage;try{sceneStorage=sessionStorage}catch{}
+const aiCache=createPlanCache(sceneStorage);
+let aiElapsedTimer=null,aiStarted=0;
+function updateSearchProgress(){const elapsed=document.querySelector('[data-ai-elapsed]');if(elapsed)elapsed.textContent=`${((performance.now()-aiStarted)/1000).toFixed(1)}s`;const hint=document.querySelector('[data-ai-hint]');if(hint&&performance.now()-aiStarted>4500)hint.textContent='Still working on your idea. Google Search is ready below.'}
 let weatherTimer;
 let weatherController;
 let placeTimeTimer;
@@ -389,15 +393,20 @@ function queueInterpret(immediate=false){
   if(import.meta.env.BASE_URL!=='/')return;
   if(state.aiUnavailable||detect(state.text).type!=='search'||state.text.trim().length<4)return;
   const query=state.text.trim();
-  const cached=aiCache.get(query.toLowerCase());
+  const cached=aiCache.get(query);
   if(cached){state.aiScene={query,plan:cached};const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);return}
   if(aiRequestQuery===query)return;
+  state.aiPending=query;aiStarted=performance.now();
+  clearInterval(aiElapsedTimer);aiElapsedTimer=setInterval(updateSearchProgress,100);
+  const pendingInput=document.querySelector('#prompt');
+  clearTimeout(inputRender);render(document.activeElement===pendingInput,pendingInput?.selectionStart);
   aiRender=setTimeout(async()=>{
     aiRequest?.abort();
     const controller=new AbortController();aiRequest=controller;aiRequestQuery=query;state.aiPending=query;
-    const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);
+    const timeout=setTimeout(()=>controller.abort('timeout'),12000);
     try{
       const response=await fetch('/api/interpret',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:query}),signal:controller.signal});
+      if(state.text.trim()!==query)return;
       if(!response.ok){
         const error=(await response.json().catch(()=>({}))).error;
         if(error==='AI_NOT_CONFIGURED'){state.aiUnavailable=true;state.notice='AI IS NOT CONFIGURED · SEARCH LINKS ARE READY'}
@@ -407,12 +416,11 @@ function queueInterpret(immediate=false){
       const data=await response.json();
       const plan=validateModelPlan(data);
       if(state.text.trim()!==query||!plan)return;
-      aiCache.set(query.toLowerCase(),plan);
-      if(aiCache.size>50)aiCache.delete(aiCache.keys().next().value);
+      aiCache.set(query,plan);
       state.aiScene={query,plan};
       const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart);
-    }catch(error){if(error.name!=='AbortError')state.notice='NETWORK ERROR · SEARCH LINKS ARE READY'}
-    finally{if(aiRequest===controller){aiRequest=null;aiRequestQuery='';state.aiPending=null;if(state.text.trim()===query&&!state.aiScene){const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart)}}}
+    }catch(error){if(state.text.trim()===query&&(controller.signal.reason==='timeout'||error.name!=='AbortError'))state.notice=controller.signal.reason==='timeout'?'THIS IS TAKING TOO LONG · PRESS ENTER TO RETRY':'NETWORK ERROR · SEARCH LINKS ARE READY'}
+    finally{clearTimeout(timeout);if(aiRequest===controller){clearInterval(aiElapsedTimer);aiRequest=null;aiRequestQuery='';state.aiPending=null;if(state.text.trim()===query&&!state.aiScene){const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart)}}}
   },immediate?0:280);
 }
 function saveTeaching(target,errorNode){

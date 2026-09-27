@@ -22,10 +22,12 @@ export function localObjectPlan(input){
 }
 
 export function validateModelPlan(data){
+  if(Array.isArray(data))data=data.find(x=>x&&typeof x==='object'&&['show_object','show_atmosphere','answer'].includes(x?.action))||data[0];
   if(!data||typeof data!=='object')return null;
   if(!['show_object','show_atmosphere','answer'].includes(data.action))return null;
   const plain=value=>typeof value==='string'?value.trim():'';
-  const colours=Array.isArray(data.colors)&&data.colors.length===3&&data.colors.every(c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c))?data.colors:null;
+  const rawColors=Array.isArray(data.colors)?data.colors.slice(0,3):[];
+  const colours=rawColors.length===3&&rawColors.every(c=>typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c))?rawColors:null;
   const title=plain(data.title).slice(0,80),description=plain(data.description).slice(0,240);
   const emoji=plain(data.emoji).slice(0,12);
   const subject=plain(data.subject).slice(0,50);

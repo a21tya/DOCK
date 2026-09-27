@@ -16,7 +16,8 @@ export default defineConfig(({mode})=>{
         let body='';
         try{
           for await(const chunk of request){body+=chunk;if(body.length>10000)return send(response,413,{error:'PROMPT_TOO_LONG'})}
-          const result=await interpretPrompt(JSON.parse(body).prompt,{key:process.env.GEMINI_API_KEY||env.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||env.GEMINI_MODEL||'gemini-3.1-flash-lite'});
+          const currentEnv=loadEnv(mode,process.cwd(),'');
+          const result=await interpretPrompt(JSON.parse(body).prompt,{key:process.env.GEMINI_API_KEY||currentEnv.GEMINI_API_KEY,model:process.env.GEMINI_MODEL||currentEnv.GEMINI_MODEL||'gemini-3.1-flash-lite'});
           return send(response,result.status,result.body);
         }catch{return send(response,400,{error:'INVALID_REQUEST'})}
       });
