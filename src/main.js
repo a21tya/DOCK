@@ -1,4 +1,5 @@
 import './style.css';
+import {gravityIntent,physicsShell,mountPhysics} from './what-if.js';
 import {openField} from './field.js';
 import {createPlanCache} from './interpret-cache.js';
 import {findEmoji} from './emoji-intent.js';
@@ -111,6 +112,7 @@ function detect(input,skipMemory=false){
   if(/^(?:blackjack|play blackjack|21 cards)$/i.test(text))return {type:'game-blackjack',name:'Blackjack'};
   const dice=parseDice(text);if(dice)return {type:'game-dice',name:'Dice',...dice};
   if(!text)return {type:'idle',name:'Blank canvas'};
+  const experiment=gravityIntent(text);if(experiment)return experiment;
   const pastedPalette=parsePalette(text);
   if(pastedPalette)return pastedPalette;
   if(/\b(?:india|indian)\b.*\bmap\b|\bmap\b.*\b(?:india|indian)\b/.test(lower))return {type:'india-map',name:'India atlas'};
@@ -250,6 +252,7 @@ function saveList(scene){
   localStorage.setItem('dock-list',JSON.stringify(state.savedList));
 }
 function result(scene){
+  if(scene.type==='physics')return physicsShell();
   const label=`<div class="result-label"><span class="live-dot"></span>${esc(scene.name.toUpperCase())}<span>${scene.remembered?`<button class="forget-teaching" data-action="forget-teaching" data-learned-from="${esc(scene.learnedFrom)}" aria-label="Forget this interpretation">${scene.similar?'LEARNED MATCH':'REMEMBERED'} · FORGET ↗</button>`:'/ LIVE OBJECT 001'}</span></div>`;
   if(scene.type==='india-map'||scene.type==='world-map')return mapShell(scene.type);
   if(scene.type==='trip'){const [start,end]=state.tripDraft?.place===scene.place?[state.tripDraft.start,state.tripDraft.end]:tripDates();const minimum=todayKey();return `<section class="result-card trip-card">${label}<div class="trip-title"><div><h2>Plan a trip to ${esc(scene.place)}.</h2><p>Choose your dates and keep the plan in Your Plans.</p></div><span>✈</span></div><div class="trip-dates"><div>${tripDateControls('start',start,minimum)}</div><span>→</span><div>${tripDateControls('end',end,start)}</div></div><p class="trip-error" role="alert"></p><button class="primary-button" data-action="save-trip">SAVE TRIP</button><div class="trip-calendar-label">YOUR TRAVEL DATES</div>${calendarPanel()}</section>`}
@@ -275,14 +278,16 @@ function result(scene){
   if(scene.type==='list'){const items=state.listItems??scene.items;return `<section class="result-card list-card">${label}<div class="list-heading"><div><h2>${scene.name==='Shopping checklist'?'Your shopping list.':'A list, ready to go.'}</h2><p>Appears as you type. Check things off, add more, or remove them.</p></div><span class="list-progress">${state.checked.size} / ${items.length} DONE</span></div><div class="checklist">${items.map((item,i)=>`<div class="list-row ${state.checked.has(i)?'done':''}"><button class="list-toggle" data-check="${i}" aria-label="${state.checked.has(i)?'Uncheck':'Check'} ${esc(item)}"><span>${state.checked.has(i)?icon('check',14):''}</span><span>${esc(item)}</span></button><button class="list-remove" data-remove="${i}" aria-label="Remove ${esc(item)}">${icon('close',15)}</button></div>`).join('')||'<p class="list-empty">Start typing your first item…</p>'}</div><form id="add-item-form" class="add-item"><input id="new-item" aria-label="Add list item" placeholder="Add another item…" autocomplete="off"><button type="submit" aria-label="Add item">${icon('plus',18)}</button></form></section>`}
   return `<section class="result-card">${label}<h2>Keep going. It’s taking shape.</h2><p>Try a colour, an object, a timer, a calculation, or a list. Your words paint the whole canvas.</p></section>`;
 }
+let disposePhysics=()=>{};
 function render(focus=false,cursor=null){
+  disposePhysics();
   const scene=detect(state.text);
   saveList(scene);
   const palette=scene.palette;
-  const liveResult=['list','color','sky','search','aurora','pixel','emoji','creature','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
+  const liveResult=['physics','list','color','sky','search','aurora','pixel','emoji','creature','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
   app.innerHTML=`<div class="world ${scene.type==='search'?'explore':scene.type} ${scene.coloured?'coloured':''} ${scene.type==='weather'?`weather-${scene.data?.condition||'cloudy'}`:''} ${state.committed||liveResult?'committed':''} ${state.aiPending?'ai-loading':''}" style="${palette?`--c1:${palette[0]};--c2:${palette[1]};--c3:${palette[2]};`:''}${scene.type==='emoji'||scene.type==='creature'?`--object-bg:${scene.bg};--object-ink:${scene.ink};`:''}">
     <div class="scene">${environment(scene)}</div><div class="noise"></div>
-    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
+    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><button class="secondary-button" data-example="what if gravity halved">↗ WHAT IF?</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
     <aside class="corner-clock" aria-label="Interactive India Standard Time clock">${analogClock()}</aside>
     <main class="stage">
       <div class="core"><h1 class="draggable-headline" aria-label="Drag individual words; each returns after three seconds">${draggableWords(scene.type==='idle'?'What should this<br><em>become?</em>':scene.type==='sunset'?'There’s a sunset<br><em>in your words.</em>':scene.type==='night'?'A darker sky.<br><em>Just as you asked.</em>':scene.type==='sky'?'Paint the sky.<br><em>Make it yours.</em>':scene.type==='aurora'?'Let the lights<br><em>dance.</em>':scene.type==='pixel'?'A pixel world.<br><em>One diamond.</em>':scene.type==='search'?'Curiosity looks<br><em>good here.</em>':scene.type==='ai-visual'?'Your thought.<br><em>A new world.</em>':scene.type==='ai-answer'?'A question.<br><em>An answer.</em>':scene.type==='clock'?'Time is yours<br><em>to play with.</em>':scene.type==='calendar'?'Your days,<br><em>in view.</em>':scene.type==='reminder'?'Keep it<br><em>on your mind.</em>':scene.type==='color'?'Find your<br><em>perfect shade.</em>':scene.type==='emoji'?`You said ${scene.emoji}<br><em>We heard a world.</em>`:scene.type==='creature'?`Meet the ${esc(scene.subject)}.<br><em>It’s everywhere.</em>`:scene.type==='timer'?'Time to make<br><em>time.</em>':scene.type==='trip'?'The next place,<br><em>on your calendar.</em>':(scene.type.startsWith('game-')||scene.type==='games-hub')?'A little play,<br><em>right here.</em>':scene.type==='split'||scene.type==='calc'?'Numbers in.<br><em>Clarity out.</em>':scene.type==='list'?'Consider it<br><em>on the list.</em>':scene.type==='greeting'?'Good to see<br><em>you here.</em>':scene.type==='weather'?'The sky has<br><em>a story.</em>':scene.type==='place-time'?'Around the world,<br><em>right now.</em>':scene.type==='flag'?'Find the flag.<br><em>Follow the story.</em>':scene.type==='india-map'||scene.type==='world-map'?'A world to<br><em>explore.</em>':'Words become<br><em>worlds.</em>')}</h1><p class="subtitle">Type a thought. Speak an idea. Watch the interface become it.</p>
@@ -294,6 +299,7 @@ function render(focus=false,cursor=null){
     ${state.alert?`<div class="reminder-toast" role="alert"><span>⏰ ${esc(state.alert)}</span><button data-action="dismiss-alert" aria-label="Dismiss reminder">${icon('close',16)}</button></div>`:''}
   </div>`;
   bind();
+  if(scene.type==='physics')disposePhysics=mountPhysics(document.querySelector('.physics-lab'),scene.gravity);
   if(scene.type==='india-map'||scene.type==='world-map')mountMap(scene.type,scene.country);
   if(scene.type==='weather')queueWeather(scene);
   if(scene.type==='place-time')queuePlaceTime(scene);
