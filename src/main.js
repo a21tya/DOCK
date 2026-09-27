@@ -1,5 +1,5 @@
 import './style.css';
-import {openAlive} from './alive.js';
+import {mountAlive} from './alive.js';
 import {openField} from './field.js';
 import {createPlanCache} from './interpret-cache.js';
 import {findEmoji} from './emoji-intent.js';
@@ -276,14 +276,16 @@ function result(scene){
   if(scene.type==='list'){const items=state.listItems??scene.items;return `<section class="result-card list-card">${label}<div class="list-heading"><div><h2>${scene.name==='Shopping checklist'?'Your shopping list.':'A list, ready to go.'}</h2><p>Appears as you type. Check things off, add more, or remove them.</p></div><span class="list-progress">${state.checked.size} / ${items.length} DONE</span></div><div class="checklist">${items.map((item,i)=>`<div class="list-row ${state.checked.has(i)?'done':''}"><button class="list-toggle" data-check="${i}" aria-label="${state.checked.has(i)?'Uncheck':'Check'} ${esc(item)}"><span>${state.checked.has(i)?icon('check',14):''}</span><span>${esc(item)}</span></button><button class="list-remove" data-remove="${i}" aria-label="Remove ${esc(item)}">${icon('close',15)}</button></div>`).join('')||'<p class="list-empty">Start typing your first item…</p>'}</div><form id="add-item-form" class="add-item"><input id="new-item" aria-label="Add list item" placeholder="Add another item…" autocomplete="off"><button type="submit" aria-label="Add item">${icon('plus',18)}</button></form></section>`}
   return `<section class="result-card">${label}<h2>Keep going. It’s taking shape.</h2><p>Try a colour, an object, a timer, a calculation, or a list. Your words paint the whole canvas.</p></section>`;
 }
+let disposeAlive=()=>{};
 function render(focus=false,cursor=null){
+  disposeAlive();
   const scene=detect(state.text);
   saveList(scene);
   const palette=scene.palette;
   const liveResult=['list','color','sky','search','aurora','pixel','emoji','creature','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
   app.innerHTML=`<div class="world ${scene.type==='search'?'explore':scene.type} ${scene.coloured?'coloured':''} ${scene.type==='weather'?`weather-${scene.data?.condition||'cloudy'}`:''} ${state.committed||liveResult?'committed':''} ${state.aiPending?'ai-loading':''}" style="${palette?`--c1:${palette[0]};--c2:${palette[1]};--c3:${palette[2]};`:''}${scene.type==='emoji'||scene.type==='creature'?`--object-bg:${scene.bg};--object-ink:${scene.ink};`:''}">
     <div class="scene">${environment(scene)}</div><div class="noise"></div>
-    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><button class="alive-entry" data-action="open-alive">✧ MAKE IT ALIVE</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
+    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
     <aside class="corner-clock" aria-label="Interactive India Standard Time clock">${analogClock()}</aside>
     <main class="stage">
       <div class="core"><h1 class="draggable-headline" aria-label="Drag individual words; each returns after three seconds">${draggableWords(scene.type==='idle'?'What should this<br><em>become?</em>':scene.type==='sunset'?'There’s a sunset<br><em>in your words.</em>':scene.type==='night'?'A darker sky.<br><em>Just as you asked.</em>':scene.type==='sky'?'Paint the sky.<br><em>Make it yours.</em>':scene.type==='aurora'?'Let the lights<br><em>dance.</em>':scene.type==='pixel'?'A pixel world.<br><em>One diamond.</em>':scene.type==='search'?'Curiosity looks<br><em>good here.</em>':scene.type==='ai-visual'?'Your thought.<br><em>A new world.</em>':scene.type==='ai-answer'?'A question.<br><em>An answer.</em>':scene.type==='clock'?'Time is yours<br><em>to play with.</em>':scene.type==='calendar'?'Your days,<br><em>in view.</em>':scene.type==='reminder'?'Keep it<br><em>on your mind.</em>':scene.type==='color'?'Find your<br><em>perfect shade.</em>':scene.type==='emoji'?`You said ${scene.emoji}<br><em>We heard a world.</em>`:scene.type==='creature'?`Meet the ${esc(scene.subject)}.<br><em>It’s everywhere.</em>`:scene.type==='timer'?'Time to make<br><em>time.</em>':scene.type==='trip'?'The next place,<br><em>on your calendar.</em>':(scene.type.startsWith('game-')||scene.type==='games-hub')?'A little play,<br><em>right here.</em>':scene.type==='split'||scene.type==='calc'?'Numbers in.<br><em>Clarity out.</em>':scene.type==='list'?'Consider it<br><em>on the list.</em>':scene.type==='greeting'?'Good to see<br><em>you here.</em>':scene.type==='weather'?'The sky has<br><em>a story.</em>':scene.type==='place-time'?'Around the world,<br><em>right now.</em>':scene.type==='flag'?'Find the flag.<br><em>Follow the story.</em>':scene.type==='india-map'||scene.type==='world-map'?'A world to<br><em>explore.</em>':'Words become<br><em>worlds.</em>')}</h1><p class="subtitle">Type a thought. Speak an idea. Watch the interface become it.</p>
@@ -295,6 +297,7 @@ function render(focus=false,cursor=null){
     ${state.alert?`<div class="reminder-toast" role="alert"><span>⏰ ${esc(state.alert)}</span><button data-action="dismiss-alert" aria-label="Dismiss reminder">${icon('close',16)}</button></div>`:''}
   </div>`;
   bind();
+  disposeAlive=mountAlive(document.querySelector('.draggable-headline'));
   if(scene.type==='india-map'||scene.type==='world-map')mountMap(scene.type,scene.country);
   if(scene.type==='weather')queueWeather(scene);
   if(scene.type==='place-time')queuePlaceTime(scene);
@@ -396,7 +399,7 @@ function queueInterpret(immediate=false){
   if(state.aiUnavailable||detect(state.text).type!=='search'||state.text.trim().length<4)return;
   const query=state.text.trim();
   const cached=aiCache.get(query);
-  if(cached){state.aiScene={query,plan:cached};const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);return}
+  if(cached){state.aiPending=null;state.aiScene={query,plan:cached};const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);return}
   if(aiRequestQuery===query)return;
   state.aiPending=query;aiStarted=performance.now();
   clearInterval(aiElapsedTimer);aiElapsedTimer=setInterval(updateSearchProgress,100);
@@ -419,7 +422,7 @@ function queueInterpret(immediate=false){
       const plan=validateModelPlan(data);
       if(state.text.trim()!==query||!plan)return;
       aiCache.set(query,plan);
-      state.aiScene={query,plan};
+      state.aiPending=null;state.notice='';state.aiScene={query,plan};
       const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart);
     }catch(error){if(state.text.trim()===query&&(controller.signal.reason==='timeout'||error.name!=='AbortError'))state.notice=controller.signal.reason==='timeout'?'THIS IS TAKING TOO LONG · PRESS ENTER TO RETRY':'NETWORK ERROR · SEARCH LINKS ARE READY'}
     finally{clearTimeout(timeout);if(aiRequest===controller){clearInterval(aiElapsedTimer);aiRequest=null;aiRequestQuery='';state.aiPending=null;if(state.text.trim()===query&&!state.aiScene){const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart)}}}
@@ -455,7 +458,7 @@ function toggleVoice(){
 }
 function bind(){
   document.querySelector('[data-action="open-field"]')?.addEventListener('click',openField);
-  document.querySelector('[data-action="open-alive"]')?.addEventListener('click',()=>openAlive(state.text||'DOCK'));
+
   const input=document.querySelector('#prompt');
   document.querySelector('#teach-form')?.addEventListener('submit',event=>{event.preventDefault();saveTeaching(document.querySelector('#teach-target').value,document.querySelector('.teach-form small'))});
   document.querySelectorAll('[data-action="teach-toggle"]').forEach(button=>button.addEventListener('click',()=>{state.teachOpen=true;render();document.querySelector('#teach-dialog-target')?.focus()}));
@@ -513,5 +516,5 @@ window.setInterval(()=>{
   if(due){due.fired=true;localStorage.setItem('dock-reminders',JSON.stringify(state.reminders));state.alert=`Reminder: ${due.label}`;const existing=document.querySelector('.reminder-toast');if(existing)existing.remove();const toast=document.createElement('div');toast.className='reminder-toast';toast.setAttribute('role','alert');toast.innerHTML=`<span>⏰ ${esc(state.alert)}</span><button aria-label="Dismiss reminder">${icon('close',16)}</button>`;toast.querySelector('button').onclick=()=>{state.alert='';toast.remove()};document.querySelector('.world')?.append(toast)}
 },1000);
 
-window.setInterval(()=>{state.suggestionOffset=(state.suggestionOffset+1)%sparks.length;const examples=document.querySelector('.examples');if(examples)examples.innerHTML=`<span>TRY A SPARK</span>${Array.from({length:4},(_,i)=>sparks[(state.suggestionOffset+i)%sparks.length]).map(x=>`<button data-example="${esc(x)}">${esc(x)} <span>↗</span></button>`).join('')}`;document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{state.text=b.dataset.example;state.committed=true;render(true)});const prompt=document.querySelector('#prompt');if(prompt&&document.activeElement!==prompt)prompt.placeholder=`Try ‘${sparks[state.suggestionOffset]}’…`},6500);
+window.setInterval(()=>{state.suggestionOffset=(state.suggestionOffset+1)%sparks.length;const examples=document.querySelector('.examples');if(examples)examples.innerHTML=`<span>TRY A SPARK</span>${Array.from({length:4},(_,i)=>sparks[(state.suggestionOffset+i)%sparks.length]).map(x=>`<button data-example="${esc(x)}">${esc(x)} <span>↗</span></button>`).join('')}`;document.querySelectorAll('[data-example]').forEach(b=>b.onclick=()=>{state.text=b.dataset.example;state.committed=true;state.aiScene=null;render(true);queueInterpret(true)});const prompt=document.querySelector('#prompt');if(prompt&&document.activeElement!==prompt)prompt.placeholder=`Try ‘${sparks[state.suggestionOffset]}’…`},6500);
 window.addEventListener('dock-plan-trip',e=>{state.text=`trip to ${e.detail.place}`;state.committed=true;const [start,end]=tripDates();state.tripDraft={place:e.detail.place,start,end};const [year,month]=start.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;render(true)});
