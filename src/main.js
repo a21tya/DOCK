@@ -1,6 +1,4 @@
 import './style.css';
-import {openAlive} from './alive.js';
-import {startDream} from './dream.js';
 import {openField} from './field.js';
 import {createPlanCache} from './interpret-cache.js';
 import {findEmoji} from './emoji-intent.js';
@@ -284,7 +282,7 @@ function render(focus=false,cursor=null){
   const liveResult=['list','color','sky','search','aurora','pixel','emoji','creature','reminder','calendar','calc','ai-visual','ai-answer','india-map','world-map','greeting','weather','place-time','flag','trip','game-rps','game-dice','game-blackjack','games-hub'].includes(scene.type)&&state.text.trim().length>2;
   app.innerHTML=`<div class="world ${scene.type==='search'?'explore':scene.type} ${scene.coloured?'coloured':''} ${scene.type==='weather'?`weather-${scene.data?.condition||'cloudy'}`:''} ${state.committed||liveResult?'committed':''} ${state.aiPending?'ai-loading':''}" style="${palette?`--c1:${palette[0]};--c2:${palette[1]};--c3:${palette[2]};`:''}${scene.type==='emoji'||scene.type==='creature'?`--object-bg:${scene.bg};--object-ink:${scene.ink};`:''}">
     <div class="scene">${environment(scene)}</div><div class="noise"></div>
-    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><button class="alive-entry" data-action="open-alive">✧ LIVING TYPE</button><button class="alive-entry" data-action="dream">◐ DREAM</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
+    <header class="topbar"><button class="logo" data-action="home" aria-label="DOCK home"><span class="logo-icon">◖◗</span>DOCK<span>.</span></button><button class="field-entry" data-action="open-field">✦ ENTER THE FIELD</button><a class="github-link" href="https://github.com/a21tya" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile">GitHub ↗</a></header>
     <aside class="corner-clock" aria-label="Interactive India Standard Time clock">${analogClock()}</aside>
     <main class="stage">
       <div class="core"><h1 class="draggable-headline" aria-label="Drag individual words; each returns after three seconds">${draggableWords(scene.type==='idle'?'What should this<br><em>become?</em>':scene.type==='sunset'?'There’s a sunset<br><em>in your words.</em>':scene.type==='night'?'A darker sky.<br><em>Just as you asked.</em>':scene.type==='sky'?'Paint the sky.<br><em>Make it yours.</em>':scene.type==='aurora'?'Let the lights<br><em>dance.</em>':scene.type==='pixel'?'A pixel world.<br><em>One diamond.</em>':scene.type==='search'?'Curiosity looks<br><em>good here.</em>':scene.type==='ai-visual'?'Your thought.<br><em>A new world.</em>':scene.type==='ai-answer'?'A question.<br><em>An answer.</em>':scene.type==='clock'?'Time is yours<br><em>to play with.</em>':scene.type==='calendar'?'Your days,<br><em>in view.</em>':scene.type==='reminder'?'Keep it<br><em>on your mind.</em>':scene.type==='color'?'Find your<br><em>perfect shade.</em>':scene.type==='emoji'?`You said ${scene.emoji}<br><em>We heard a world.</em>`:scene.type==='creature'?`Meet the ${esc(scene.subject)}.<br><em>It’s everywhere.</em>`:scene.type==='timer'?'Time to make<br><em>time.</em>':scene.type==='trip'?'The next place,<br><em>on your calendar.</em>':(scene.type.startsWith('game-')||scene.type==='games-hub')?'A little play,<br><em>right here.</em>':scene.type==='split'||scene.type==='calc'?'Numbers in.<br><em>Clarity out.</em>':scene.type==='list'?'Consider it<br><em>on the list.</em>':scene.type==='greeting'?'Good to see<br><em>you here.</em>':scene.type==='weather'?'The sky has<br><em>a story.</em>':scene.type==='place-time'?'Around the world,<br><em>right now.</em>':scene.type==='flag'?'Find the flag.<br><em>Follow the story.</em>':scene.type==='india-map'||scene.type==='world-map'?'A world to<br><em>explore.</em>':'Words become<br><em>worlds.</em>')}</h1><p class="subtitle">Type a thought. Speak an idea. Watch the interface become it.</p>
@@ -456,8 +454,6 @@ function toggleVoice(){
 }
 function bind(){
   document.querySelector('[data-action="open-field"]')?.addEventListener('click',openField);
-  document.querySelector('[data-action="open-alive"]')?.addEventListener('click',()=>openAlive(state.text||'DOCK'));
-  document.querySelector('[data-action="dream"]')?.addEventListener('click',()=>startDream(prompt=>{clearTimeout(aiRender);clearTimeout(inputRender);aiRequest?.abort();state.aiPending=null;state.aiScene=null;state.notice='';state.text=prompt;state.committed=true;state.colorOverride=null;render()}));
 
   const input=document.querySelector('#prompt');
   document.querySelector('#teach-form')?.addEventListener('submit',event=>{event.preventDefault();saveTeaching(document.querySelector('#teach-target').value,document.querySelector('.teach-form small'))});
