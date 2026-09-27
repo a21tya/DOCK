@@ -404,7 +404,7 @@ function queueInterpret(immediate=false){
   aiRender=setTimeout(async()=>{
     aiRequest?.abort();
     const controller=new AbortController();aiRequest=controller;aiRequestQuery=query;state.aiPending=query;
-    const timeout=setTimeout(()=>controller.abort('timeout'),12000);
+    const timeout=setTimeout(()=>controller.abort('timeout'),14000);
     try{
       const response=await fetch('/api/interpret',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:query}),signal:controller.signal});
       if(state.text.trim()!==query)return;
@@ -422,7 +422,7 @@ function queueInterpret(immediate=false){
       const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart);
     }catch(error){if(state.text.trim()===query&&(controller.signal.reason==='timeout'||error.name!=='AbortError'))state.notice=controller.signal.reason==='timeout'?'THIS IS TAKING TOO LONG · PRESS ENTER TO RETRY':'NETWORK ERROR · SEARCH LINKS ARE READY'}
     finally{clearTimeout(timeout);if(aiRequest===controller){clearInterval(aiElapsedTimer);aiRequest=null;aiRequestQuery='';state.aiPending=null;if(state.text.trim()===query&&!state.aiScene){const currentInput=document.querySelector('#prompt');render(document.activeElement===currentInput,currentInput?.selectionStart)}}}
-  },immediate?0:120);
+  },immediate?0:160);
 }
 function saveTeaching(target,errorNode){
   const scene=detect(target,true);
