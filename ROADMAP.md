@@ -1,5 +1,7 @@
 # DOCK work plan
 
+Roadmap paused at the user's request while building The Field, an interactive word universe (27 September 2026).
+
 DOCK is a local-first visual canvas with a hosted Gemini interpreter for unfamiliar prompts. We will work through these milestones in order. A milestone is done only after its examples work on the production URL and the fallback still works without the model.
 
 ## 1. Response speed and reliability
