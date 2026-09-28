@@ -1,6 +1,6 @@
 import {validateModelPlan} from './intent-plan.js';
 
-export async function interpretPrompt(prompt,{key,model='gemini-3.1-flash-lite',fetchImpl=fetch,signal}={}){
+export async function interpretPrompt(prompt,{key,model='gemini-3.1-flash-lite',fetchImpl=fetch,signal,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
   if(typeof prompt!=='string'||!prompt.trim()||prompt.length>500)return {status:400,body:{error:'INVALID_PROMPT'}};
   const apiKey=typeof key==='string'?key.trim().replace(/^["']|["']$/g,''):'';
   if(!apiKey)return {status:503,body:{error:'AI_NOT_CONFIGURED'}};
@@ -12,11 +12,16 @@ export async function interpretPrompt(prompt,{key,model='gemini-3.1-flash-lite',
   else signal?.addEventListener('abort',onAbort,{once:true});
   const timer=setTimeout(()=>controller.abort('timeout'),12000);
   try{
-    const upstream=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
+    let upstream;
+    for(let attempt=0;attempt<2;attempt++){
+    upstream=await fetchImpl(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,{
       method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':apiKey},
       body:JSON.stringify({contents:[{parts:[{text:instruction}]}],generationConfig:{responseMimeType:'application/json',responseSchema,maxOutputTokens:384,...(model.startsWith('gemini-3')?{thinkingConfig:{thinkingLevel:'minimal'}}:{})}}),
       signal:controller.signal,
     });
+    if(upstream.ok||![429,500,502,503,504].includes(upstream.status)||attempt===1||controller.signal.aborted)break;
+    await sleep(300);
+    }
     if(!upstream.ok){
       console.error('DOCK_MODEL_UPSTREAM_STATUS',upstream.status);
       return {status:upstream.status===429?503:502,body:{error:upstream.status===429?'MODEL_BUSY':'MODEL_UNAVAILABLE'}};

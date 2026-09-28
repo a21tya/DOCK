@@ -66,7 +66,7 @@ The API is not active on GitHub Pages. The Vercel deployment has been tested wit
 - `weather in Jaipur` fetches current model-estimated weather from Open-Meteo, with rain/wind backgrounds and temperature, feels-like temperature, wind, and precipitation. It requires internet access; a failed request displays an error rather than invented conditions.
 - `time in London` finds the location's timezone and displays its live local time. The corner clock continues to show IST.
 
-The matching of familiar phrases is local. These changes do not train a model, remember corrections, or play artist music. The optional model endpoint described above remains available for broader interpretation.
+The matching of familiar phrases is local. Familiar-phrase matching does not train a model or play artist music. Explicit Teach DOCK corrections are saved in this browser. The optional model endpoint described above remains available for broader interpretation.
 
 ### Map and weather sources
 
@@ -84,10 +84,17 @@ The matching of familiar phrases is local. These changes do not train a model, r
 ## Your queue and quick tools
 
 - **Your Plans** keeps active timers, appointments, and upcoming saved trips in this browser; game results and search history stay out of it. The **My List** shortcut lives here too. On narrow screens it becomes a compact strip along the bottom. A timer resumes its countdown after a reload.
-- Type `/` to see 24 available tools, including maps, weather, calendar, trips, lists, games, and timers. Scroll the menu, type to filter, click a command, or press Enter for the first match. The search hint and example prompts rotate every 6.5 seconds.
+- Type `/` to see 24 available tools, including maps, weather, calendar, trips, lists, games, and timers. Scroll the menu, type to filter, click a command, or press Enter for the first match. Example prompts stay still so keyboard focus and tool state are preserved.
 - `trip to Jaipur` opens day/month/year selectors with the range highlighted on a calendar. Dates before today, years before 2026, and returns before departure are blocked. Select a state, district, or country in the atlas to see a place name and current estimated temperature, then use **Plan a trip** to open the trip card. Saved trips appear under Your Plans.
 - `rock paper scissors`, `blackjack`, `roll 2d6`, and `games` open local games. They use no accounts, real money, or wagers.
 - Each word in the home heading can be dragged separately and returns after three seconds. The larger clock has no digital time label beneath it, and its hands return to IST after three seconds of inactivity.
 - The top-right GitHub button opens [a21tya](https://github.com/a21tya).
 
 Queue items and trips are stored in this browser's local storage. Weather and place temperatures require a network connection to Open-Meteo. Trip planning here saves dates; it does not book travel or send external calendar invitations.
+
+
+## Public release checks (28 September 2026)
+
+The What if gravity experiment has been removed. The Field remains available. This release adds mobile atlas stacking, scrollable results, consistent rounded controls, keyboard focus indicators, bounded correction dialogs, resilient browser storage, model retry handling, and corrected calculator precedence. Run `npm test` and `npm run build` before deployment.
+
+Lists, plans, and taught corrections stay in the current browser. Clearing browser data removes them. Reminders need an open page to alert. Gemini interpretation, weather, and city lookup require their respective online services; service availability and model accuracy can vary. The API key stays server-side. Production traffic limits and usage budgets should be managed in the hosting/model-provider accounts; application tests are not a load test.

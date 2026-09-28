@@ -1,1 +1,20 @@
-{"name":"dock","version":"0.1.0","private":true,"type":"module","scripts":{"dev":"vite --host 127.0.0.1","build":"vite build","preview":"vite preview --host 127.0.0.1"},"dependencies":{"d3-geo":"^3.1.1","emojilib":"^4.0.3","pdfjs-dist":"^5.4.149"},"devDependencies":{"vite":"^7.1.0"}}
+{
+  "name": "dock",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "d3-geo": "^3.1.1",
+    "emojilib": "^4.0.3",
+    "pdfjs-dist": "^5.4.149"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}

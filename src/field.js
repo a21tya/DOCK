@@ -16,9 +16,12 @@ export function openField(){
     <form class="field-compose"><span class="field-input-star">✦</span><input aria-label="A thought to turn into a world" maxlength="48" placeholder="Make a world. Type anything…" autocomplete="off"><button type="submit" aria-label="Create world">↑</button></form>
     <footer class="field-footer"><span>EXPERIMENT 002 <b>/</b> PLAY IS THE POINT.</span><span class="field-count">05 WORLDS</span></footer>
     <div class="field-accessible"><label for="field-world-one">Fuse a world</label><select id="field-world-one"></select><label for="field-world-two">with</label><select id="field-world-two"></select><button type="button" class="field-fuse">FUSE SELECTED WORLDS</button></div>`;
+  const canvasApp=document.querySelector('#app');
+  const previouslyInert=canvasApp?.inert;
+  if(canvasApp)canvasApp.inert=true;
   document.body.append(root);
   const canvas=root.querySelector('canvas'),ctx=canvas.getContext('2d');
-  if(!ctx){root.remove();return}
+  if(!ctx){root.remove();if(canvasApp)canvasApp.inert=previouslyInert;return}
   const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
   let width=0,height=0,dpr=1,worlds=[],sparks=[],pointer=null,drag=null,orbit=true,frame=0,last=performance.now(),nextId=1,closing=false;
   const stars=Array.from({length:210},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.3+.2,a:Math.random()*.55+.12}));
@@ -59,7 +62,7 @@ export function openField(){
   root.querySelector('[data-field-action="orbit"]').onclick=e=>{orbit=!orbit;const button=e.currentTarget;button.setAttribute('aria-pressed',String(orbit));button.querySelector('span').textContent=orbit?'ORBIT ON':'FREE FLOAT';status.textContent=orbit?'Everything finds its orbit.':'No rules. Just momentum.'};
   root.querySelector('[data-field-action="reset"]').onclick=()=>{seed();status.textContent='A fresh universe. Try ocean + sunset.'};
   root.querySelector('.field-fuse').onclick=()=>{const selects=root.querySelectorAll('select');fuse(worlds.find(w=>w.id===Number(selects[0].value)),worlds.find(w=>w.id===Number(selects[1].value)))};
-  const close=()=>{closing=true;cancelAnimationFrame(frame);removeEventListener('resize',resize);removeEventListener('keydown',keys);root.remove();previousFocus?.focus()};
+  const close=()=>{closing=true;cancelAnimationFrame(frame);removeEventListener('resize',resize);removeEventListener('keydown',keys);root.remove();if(canvasApp)canvasApp.inert=previouslyInert;previousFocus?.focus()};
   const keys=e=>{if(e.key==='Escape'){e.preventDefault();close()}if(e.key==='Tab'){const focusable=[...root.querySelectorAll('button,input,select')].filter(el=>!el.disabled);const first=focusable[0],end=focusable.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();end.focus()}else if(!e.shiftKey&&document.activeElement===end){e.preventDefault();first.focus()}}};
   root.querySelector('.field-exit').onclick=close;addEventListener('resize',resize);addEventListener('keydown',keys);resize();seed();frame=requestAnimationFrame(tick);root.querySelector('input').focus();
 }

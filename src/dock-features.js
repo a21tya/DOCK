@@ -1,3 +1,4 @@
+import {writeStored} from './storage.js';
 export const commands=[
   {label:'India map',hint:'States and districts',prompt:'Indian map',icon:'◎'},
   {label:'Globe',hint:'Countries and capitals',prompt:'world map',icon:'◉'},
@@ -32,4 +33,4 @@ export function makeDeck(){const deck=['♠','♥','♣','♦'].flatMap(suit=>Ar
 export function drawCard(deck){return deck.pop()}
 export function handValue(cards){let score=cards.reduce((n,c)=>n+c.value,0);let aces=cards.filter(c=>c.ace).length;while(aces&&score+10<=21){score+=10;aces--}return score}
 export function tripDates(){const today=new Date();const start=new Date(today.getTime()+86400000),end=new Date(today.getTime()+4*86400000);return [start,end].map(d=>{const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const x=Object.fromEntries(p.map(v=>[v.type,v.value]));return `${x.year}-${x.month}-${x.day}`})}
-export const saveActivity=items=>localStorage.setItem('dock-activity',JSON.stringify(items.slice(0,40)));
+export const saveActivity=items=>writeStored('dock-activity',items.slice(0,40));

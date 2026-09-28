@@ -15,14 +15,14 @@ export function calculate(input){
   const peek=()=>tokens[at];
   const take=()=>tokens[at++];
   function primary(){
-    if(peek()==='+'){take();return primary()}
-    if(peek()==='-'){take();return -primary()}
     if(peek()==='('){take();const n=expression();if(take()!==')')throw Error('Missing closing parenthesis');return n}
-    if(functions[peek()]){const fn=functions[take()];return fn(primary())}
+    if(functions[peek()]){const fn=functions[take()];return fn(unary())}
     const n=Number(take());if(!Number.isFinite(n))throw Error('Invalid number');return n;
   }
-  function power(){let n=primary();if(peek()==='^'){take();n=Math.pow(n,power())}while(peek()==='!'||peek()==='%'){const op=take();if(op==='%')n/=100;else {if(!Number.isInteger(n)||n<0||n>170)throw Error('Factorial supports whole numbers from 0 to 170');let value=1;for(let i=2;i<=n;i++)value*=i;n=value}}return n}
-  function term(){let n=power();while(['*','/'].includes(peek())){const op=take(),other=power();n=op==='*'?n*other:n/other}return n}
+  function postfix(){let n=primary();while(peek()==='!'||peek()==='%'){const op=take();if(op==='%')n/=100;else {if(!Number.isInteger(n)||n<0||n>170)throw Error('Factorial supports whole numbers from 0 to 170');let value=1;for(let i=2;i<=n;i++)value*=i;n=value}}return n}
+  function power(){const n=postfix();if(peek()==='^'){take();return Math.pow(n,unary())}return n}
+  function unary(){if(peek()==='+'){take();return unary()}if(peek()==='-'){take();return -unary()}return power()}
+  function term(){let n=unary();while(['*','/'].includes(peek())){const op=take(),other=unary();n=op==='*'?n*other:n/other}return n}
   function expression(){let n=term();while(['+','-'].includes(peek())){const op=take(),other=term();n=op==='+'?n+other:n-other}return n}
   try{const result=expression();if(at!==tokens.length)throw Error('Invalid expression');return {expression:text,result:Number.isFinite(result)?result:null}}catch{return null}
 }

@@ -335,3 +335,43 @@ html,body,#app{height:100%;overflow:hidden}
 /* Responsive */
 @media(max-width:560px){.ai-loader-ring{width:52px;height:52px}.ai-ring-icon{font-size:17px}.ai-loader-text h2{font-size:18px!important}}
 @media(prefers-reduced-motion:reduce){.ai-loading-card:before,.ai-ring-fill,.ai-ring-icon,.ai-loader-particles i{animation:none!important}.ai-loader-text h2{background:none!important;-webkit-text-fill-color:#e4dfff!important}}
+
+/* Public preview: consistent surfaces, readable focus states and a scrollable canvas. */
+:root{color-scheme:dark}
+button,a,input,select,summary{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #ffe0a8;outline-offset:4px}
+button:disabled{opacity:.55;cursor:default}
+.home-kicker{font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.18em;color:#e2cce5;margin-bottom:22px}
+.world .result-card{border-radius:22px;border-color:#ffffff42;box-shadow:0 20px 65px #090b243d}
+.examples button,.secondary-button,.primary-button,.topic-links a{border-radius:12px}
+.world .search{border-color:#ffffff65;box-shadow:0 18px 60px #100b304d,0 0 0 5px #ffffff0a}
+.world .search:focus-within{border-color:#ffd0ee;box-shadow:0 20px 65px #100b3055,0 0 0 5px #ffc4e825}
+.input-meta{opacity:1;color:#ded1e2}.input-meta>span{line-height:1.6}
+.teach-dialog{border-radius:24px;box-shadow:0 30px 100px #0007}.teach-dialog input,.teach-dialog form button{border-radius:10px}
+.world:not(.india-map):not(.world-map) .stage{overflow-y:auto;padding-top:160px;padding-bottom:36px}
+.world:not(.india-map):not(.world-map) .core{position:relative;top:auto;left:auto;transform:none;margin:0 auto;max-height:none}
+.world:not(.india-map):not(.world-map) .result-card{max-height:none!important;overflow:visible!important}
+.world .result-card h2,.world .result-card p{overflow-wrap:anywhere}
+@media(max-width:1100px){.world:not(.india-map):not(.world-map) .stage{padding-top:190px;padding-bottom:125px}.world:not(.india-map):not(.world-map) .core{width:min(700px,100%)}.home-kicker{font-size:9px}}
+@media(max-width:760px){.world:not(.india-map):not(.world-map) .stage{padding-top:194px}.world .core h1{font-size:clamp(38px,9vw,62px)}.world .search-spark{display:none}.world .result-card{padding:20px}.home-kicker{letter-spacing:.1em;font-size:8px;margin-bottom:16px}.world .input-meta{flex-wrap:wrap;gap:6px}.world .examples{gap:8px}.world .examples button{min-height:44px}.world .trip-dates{flex-wrap:wrap}.world .trip-dates>div{min-width:120px}}
+@media(max-height:550px){.world:not(.india-map):not(.world-map) .stage{padding-top:95px}.world .corner-clock{display:none}.world .core h1{font-size:38px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;scroll-behavior:auto!important}}
+.world:not(.india-map):not(.world-map) .stage{display:block}
+@media(max-width:1100px){.world:not(.india-map):not(.world-map) .stage{padding-top:130px}}
+@media(max-width:760px){.world:not(.india-map):not(.world-map) .stage{padding-top:112px}.world.idle .examples{display:flex;margin-top:26px}.world.idle .core{padding-top:14px}.world .calendar-day{min-height:36px}.world .trip-date-parts select{font-size:12px;min-height:36px}}
+@media(max-height:550px){.world:not(.india-map):not(.world-map) .stage{padding-top:28px}}
+.result-label>span:has(.forget-teaching){display:flex!important;margin-left:auto}
+@media(max-width:560px){.result-label:has(.forget-teaching){flex-wrap:wrap}.result-label>span:has(.forget-teaching){width:100%;margin:5px 0 0}}
+.teach-overlay{overflow:auto}.teach-dialog{max-height:calc(100dvh - 40px);overflow:auto}
+/* Stack the atlas on phones; reserve actual space for the map and region list. */
+@media(max-width:760px){
+ .world.india-map .stage,.world.world-map .stage{inset:172px 0 0;height:calc(100dvh - 172px);padding:8px 12px 116px;display:block;overflow-y:auto}
+ .world.india-map .core,.world.world-map .core{position:relative;inset:auto;transform:none;width:100%;height:auto;max-height:none;margin:0}
+ .world.india-map .result-wrap,.world.world-map .result-wrap{flex:none;overflow:visible}
+ .world.india-map .result-card,.world.world-map .result-card{height:auto;max-height:none;padding:16px;overflow:visible}
+ .atlas-header{flex-wrap:wrap;align-items:flex-start}.atlas-header h2{font-size:23px}
+ .atlas-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;flex:none}
+ .atlas-map{height:310px;min-height:310px}.atlas-sidebar{height:250px;min-height:250px}
+ .atlas-list{grid-template-columns:repeat(2,minmax(0,1fr))}.atlas-list button{min-height:40px}
+}
+@media(max-width:360px){.field-entry{font-size:8px!important;padding:10px!important}.topbar{gap:10px!important}.github-link{padding:9px!important}}
