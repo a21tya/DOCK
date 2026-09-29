@@ -15,6 +15,7 @@ export const commands=[
   {label:'Rock paper scissors',hint:'Quick game',prompt:'rock paper scissors',icon:'✊'},
   {label:'Blackjack',hint:'Cards for fun',prompt:'blackjack',icon:'♠'},
   {label:'Dice',hint:'Roll 2d6',prompt:'roll 2d6',icon:'⚄'},
+  {label:'Sunrise',hint:'First light over water',prompt:'sunrise',icon:'☀'},
   {label:'Sunset',hint:'Warm animated sky',prompt:'a warm orange sunset',icon:'☀'},
   {label:'Northern lights',hint:'Animated aurora',prompt:'northern lights',icon:'✦'},
   {label:'Night sky',hint:'Stars after dark',prompt:'a black sky',icon:'☾'},
@@ -25,7 +26,7 @@ export const commands=[
   {label:'Split a bill',hint:'Share a total',prompt:'split 2400 between 3',icon:'÷'},
   {label:'Cube root',hint:'Quick maths',prompt:'cube root of 27',icon:'∛'},
 ];
-export const sparks=['a pink sky','northern lights','red','buy milk, eggs, bread and coffee','minecraft diamond','Indian map','world map','weather in Jaipur','2 min timer','trip to Goa','roll 2d6','blackjack','rock paper scissors'];
+export const sparks=['sunrise','a warm orange sunset','a pink sky','northern lights','red','buy milk, eggs, bread and coffee','minecraft diamond','Indian map','world map','weather in Jaipur','2 min timer','trip to Goa','roll 2d6','blackjack','rock paper scissors'];
 export function slashMatch(value){if(!value.startsWith('/'))return [];const q=value.slice(1).trim().toLowerCase();return commands.filter(c=>!q||`${c.label} ${c.hint}`.toLowerCase().includes(q))}
 export function parseDice(text){const match=text.trim().match(/^(?:roll\s+)?(\d{1,2})?d(\d{1,3})(?:\s+dice?)?$/i);if(!match)return null;const count=Number(match[1]||1),sides=Number(match[2]);return count>=1&&count<=10&&sides>=2&&sides<=100?{count,sides}:null}
 export const randomInt=(max)=>Math.floor(Math.random()*max)+1;
@@ -34,3 +35,13 @@ export function drawCard(deck){return deck.pop()}
 export function handValue(cards){let score=cards.reduce((n,c)=>n+c.value,0);let aces=cards.filter(c=>c.ace).length;while(aces&&score+10<=21){score+=10;aces--}return score}
 export function tripDates(){const today=new Date();const start=new Date(today.getTime()+86400000),end=new Date(today.getTime()+4*86400000);return [start,end].map(d=>{const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);const x=Object.fromEntries(p.map(v=>[v.type,v.value]));return `${x.year}-${x.month}-${x.day}`})}
 export const saveActivity=items=>writeStored('dock-activity',items.slice(0,40));
+
+// Exclude the last group before shuffling so every refresh reveals four new ideas.
+export function createSparkPicker(previous=[],random=Math.random){
+  let last=previous;
+  return ()=>{
+    const pool=sparks.filter(value=>!last.includes(value));
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+    last=pool.slice(0,4);return [...last];
+  };
+}

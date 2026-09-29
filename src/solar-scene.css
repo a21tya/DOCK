@@ -1,0 +1,37 @@
+/* First light rises into a cool morning; golden hour sinks into dusk. */
+.sunrise .scene:before,.sunset .scene:before{background:#172b42}
+.solar-atmosphere{position:absolute;inset:0;overflow:hidden;--sun-x:78%;--sun-color:#ffe8a3}
+.solar-sky{position:absolute;inset:0 0 32%;overflow:hidden;background:linear-gradient(#292441,#7d405e 52%,#de795e 83%,#ffbd81)}
+.solar-daylight{position:absolute;inset:0;background:linear-gradient(#6e709e,#c9838e 47%,#eea57e 80%,#ffd79b);animation:dusk-light 20s ease-in-out both}
+.solar-body{position:absolute;left:var(--sun-x);top:100%;width:clamp(125px,17vw,285px);aspect-ratio:1;transform:translate(-50%,-50%) translateY(-24vh);animation:sun-descend 20s cubic-bezier(.25,.1,.35,1) both}
+.solar-body:before{content:'';position:absolute;inset:-120%;background:radial-gradient(circle,#ffd49f85,transparent 64%);border-radius:50%;filter:blur(12px)}
+.solar-disc{position:absolute;inset:0;border-radius:50%;background:linear-gradient(#fff7ce,#ffd68b 60%,#f39a6c);box-shadow:0 0 38px #ffd99988,0 0 95px #f59a6844}
+.solar-stars{position:absolute;inset:0;background-image:radial-gradient(1px 1px at 14% 18%,#fff 90%,transparent),radial-gradient(1px 1px at 62% 24%,#fff 90%,transparent),radial-gradient(2px 2px at 89% 34%,#fff9 90%,transparent),radial-gradient(1px 1px at 39% 30%,#fff 90%,transparent);background-size:470px 300px;animation:dusk-stars 20s ease-in-out both}
+.solar-sea{position:absolute;inset:68% 0 0;background:linear-gradient(#302c4c,#151c33);border-top:1px solid #ffd49b55}
+.solar-waterlight{position:absolute;left:var(--sun-x);top:68%;bottom:-10%;width:38%;transform:translateX(-50%);background:linear-gradient(#ffcd9a55,transparent);clip-path:polygon(44% 0,56% 0,100% 100%,0 100%);filter:blur(12px);animation:dusk-light 20s ease-in-out both}
+.solar-ripples{position:absolute;inset:68% 0 0;overflow:hidden;animation:dusk-reflection 20s ease-in-out both}
+.solar-ripples i{position:absolute;left:var(--sun-x);top:calc(var(--i)*5.5%);width:calc(25px + var(--i)*12px);height:2px;border-radius:50%;background:#ffd7a6;opacity:calc(.55 - var(--i)*.021);transform:translateX(-50%);box-shadow:0 0 8px #ffd7a6aa;animation:water-shimmer 3.2s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.37s)}
+.solar-horizon{position:absolute;top:68%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#ffcfa277,transparent)}
+.solar-cloud{position:absolute;width:34%;height:5%;border-radius:50%;background:#db8e9e40;filter:blur(20px);animation:solar-cloud-drift 32s ease-in-out infinite alternate}
+.solar-cloud-one{top:27%;left:7%}.solar-cloud-two{top:55%;right:0;animation-delay:-14s}
+.sunrise .solar-sky{background:linear-gradient(#284c6a,#688c9b 47%,#d6a4a0 82%,#ffcfa1)}
+.sunrise .solar-daylight{background:linear-gradient(#5b92aa,#aac2c5 47%,#f0c6af 84%,#ffdfb0);animation:dawn-light 20s ease-in-out both}
+.sunrise .solar-body{animation:sun-ascend 20s cubic-bezier(.25,.1,.35,1) both}
+.sunrise .solar-disc{background:linear-gradient(#fffce4,#ffe6a3);box-shadow:0 0 50px #ffeba699,0 0 120px #ffd59955}
+.sunrise .solar-stars{animation:dawn-stars 12s ease-out both}
+.sunrise .solar-sea{background:linear-gradient(#4b7484,#233b54)}
+.sunrise .solar-waterlight{animation:dawn-light 20s ease-in-out both}
+.sunrise .solar-ripples{animation:dawn-light 20s ease-in-out both}
+.sunrise .solar-cloud{background:#ffe5d33d}.sunrise h1 em,.sunset h1 em{color:#ffe1b2}
+.solar-replay{margin-top:18px}
+@keyframes sun-descend{from{transform:translate(-50%,-50%) translateY(-24vh)}to{transform:translate(-50%,-50%) translateY(18vh)}}
+@keyframes sun-ascend{from{transform:translate(-50%,-50%) translateY(18vh)}to{transform:translate(-50%,-50%) translateY(-24vh)}}
+@keyframes dusk-light{from{opacity:1}to{opacity:0}}
+@keyframes dawn-light{from{opacity:0}to{opacity:1}}
+@keyframes dusk-stars{0%,35%{opacity:0}100%{opacity:.8}}
+@keyframes dawn-stars{from{opacity:.65}to{opacity:0}}
+@keyframes dusk-reflection{0%,50%{opacity:1}100%{opacity:.08}}
+@keyframes water-shimmer{to{transform:translateX(-46%) scaleX(.72);opacity:.12}}
+@keyframes solar-cloud-drift{to{transform:translateX(10vw)}}
+@media(max-width:760px){.solar-atmosphere{--sun-x:80%}.solar-body{width:135px}.solar-cloud{width:60%}}
+@media(prefers-reduced-motion:reduce){.solar-atmosphere *{animation:none!important}.solar-body{transform:translate(-50%,-50%) translateY(-12vh)}.solar-stars{opacity:.15}.solar-daylight{opacity:.65}}
