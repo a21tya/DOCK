@@ -1,3 +1,4 @@
+import {mountSignatures} from './signatures.js';
 import {readStored,writeStored,validList,validReminders,validActivity} from './storage.js';
 import './style.css';
 import {openField} from './field.js';
@@ -290,6 +291,7 @@ function render(focus=false,cursor=null){
         <div class="search ${state.listening?'listening':''} ${scene.type==='list'?'with-decor':''}"><span class="search-spark">${icon('spark',23)}</span><div class="prompt-wrap">${scene.type==='list'?`<div class="prompt-mirror" aria-hidden="true"><span class="prompt-mirror-text">${decoratedPrompt(scene)}</span></div>`:''}<input id="prompt" maxlength="500" aria-label="Describe what you want" autocomplete="off" spellcheck="false" placeholder="Try ‘a warm orange sunset’…" value="${esc(state.text)}"></div><button class="mic ${state.listening?'active':''}" data-action="voice" aria-label="${state.listening?'Stop voice input':'Use voice input'}">${icon(state.listening?'stop':'mic',20)}</button><button class="go" data-action="go" aria-label="Create from input">${icon('arrow',22)}</button></div>
         ${commandPicker()}<div class="input-meta"><span role="status" aria-live="polite">${state.listening?'● LISTENING — SPEAK NOW':state.notice?esc(state.notice):'↵ ENTER TO CREATE  /  🎙 SPEAK INSTEAD'}</span>${state.text.trim().length>2&&scene.type!=='search'?'<button class="teach-toggle" data-action="teach-toggle" aria-label="Correct what DOCK understood">CORRECT THIS ↗</button>':''}</div>
         ${(state.committed||liveResult)&&state.text.trim()&&scene.type!=='clock'?`<div class="result-wrap">${result(scene)}</div>`:scene.type==='clock'?'':`<div class="examples"><span>TRY A SPARK</span>${Array.from({length:4},(_,i)=>sparks[(state.suggestionOffset+i)%sparks.length]).map(x=>`<button data-example="${esc(x)}">${esc(x)} <span>↗</span></button>`).join('')}</div>`}
+        <a class="signature-scroll" href="#signature-book">LEAVE YOUR MARK ↓</a>
       </div></main>${queuePanel()}
     ${state.teachOpen?`<div class="teach-overlay" role="presentation"><section class="teach-dialog" role="dialog" aria-modal="true" aria-labelledby="teach-heading"><button class="teach-close" data-action="teach-close" aria-label="Close correction">×</button><small>TEACH DOCK / YOUR BROWSER</small><h2 id="teach-heading">What did you mean?</h2><p>Give this phrase an equivalent DOCK command. Try “a red car”, “2 min timer”, “buy milk and eggs”, or “indian map”.</p><form id="teach-dialog-form"><label for="teach-dialog-target">SHOW THIS INSTEAD</label><div><input id="teach-dialog-target" maxlength="100" placeholder="Type a working DOCK prompt" autocomplete="off" required><button type="submit">REMEMBER ↗</button></div><span id="teach-error" role="alert"></span></form><div class="teach-library"><small>${state.teachings.length} SAVED CORRECTION${state.teachings.length===1?'':'S'} · ONLY IN THIS BROWSER</small><div><button data-action="export-teachings" ${state.teachings.length?'':'disabled'}>EXPORT JSON ↗</button><button data-action="clear-teachings" ${state.teachings.length?'':'disabled'}>DELETE ALL</button></div></div></section></div>`:''}
     ${state.alert?`<div class="reminder-toast" role="alert"><span>⏰ ${esc(state.alert)}</span><button data-action="dismiss-alert" aria-label="Dismiss reminder">${icon('close',16)}</button></div>`:''}
@@ -517,3 +519,5 @@ window.setInterval(()=>{
 
 
 window.addEventListener('dock-plan-trip',e=>{state.text=`trip to ${e.detail.place}`;state.committed=true;const [start,end]=tripDates();state.tripDraft={place:e.detail.place,start,end};const [year,month]=start.split('-').map(Number);state.calendarYear=year;state.calendarMonth=month-1;render(true)});
+
+mountSignatures();

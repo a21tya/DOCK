@@ -1,3 +1,4 @@
+import {handleSignatures} from './server/signatures.js';
 import {defineConfig,loadEnv} from 'vite';
 import {interpretPrompt} from './src/model-server.js';
 
@@ -11,6 +12,16 @@ export default defineConfig(({mode})=>{
   return {
     base:process.env.GITHUB_PAGES==='true'?'/DOCK/':'/',
     plugins:[{name:'dock-interpret',configureServer(server){
+      server.middlewares.use('/api/signatures',async(request,response)=>{
+        if(request.method==='POST'&&(!request.headers['content-type']?.startsWith('application/json')||request.headers['sec-fetch-site']==='cross-site'))return send(response,415,{error:'Use the DOCK signature form.'});
+        let raw='';
+        try{
+          for await(const chunk of request){raw+=chunk;if(raw.length>100000)return send(response,413,{error:'Drawing too large.'})}
+          const query=Object.fromEntries(new URL(request.url,'http://localhost').searchParams);
+          const result=await handleSignatures({method:request.method,body:raw?JSON.parse(raw):undefined,query,authorization:request.headers.authorization,ip:request.socket.remoteAddress},{env:{...loadEnv(mode,process.cwd(),''),...process.env}});
+          return send(response,result.status,result.body);
+        }catch{return send(response,400,{error:'Invalid request.'})}
+      });
       server.middlewares.use('/api/interpret',async(request,response)=>{
         if(request.method!=='POST')return send(response,405,{error:'METHOD_NOT_ALLOWED'});
         const controller=new AbortController();
