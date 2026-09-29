@@ -55,7 +55,8 @@ export async function handleSignatures(req,{env=process.env,fetcher=fetch}={}){
       const key=`dock:signatures:auth:${ip}:${Math.floor(Date.now()/60000)}`;
       const attempts=Number(await redis('INCR',key));if(attempts===1)await redis('EXPIRE',key,120);
       if(attempts>20)return reply(429,{error:'Too many attempts. Try again in a minute.'});
-      if(!authorized(req.authorization,env.SIGNATURE_ADMIN_TOKEN))return reply(401,{error:'Owner access key required.'});
+      if(!req.authorization)return reply(401,{error:'Enter your owner access key.'});
+      if(!authorized(req.authorization,env.SIGNATURE_ADMIN_TOKEN))return reply(401,{error:'That owner key does not match this site. Use the SIGNATURE_ADMIN_TOKEN saved for DOCK in Vercel.'});
       const offset=Math.max(0,Math.min(1000000,Math.floor(Number(req.query.offset)||0)));
       const ids=await redis('ZREVRANGE','dock:signatures:order',offset,offset+19);
       const records=ids.length?await redis('HMGET','dock:signatures:records',...ids):[];

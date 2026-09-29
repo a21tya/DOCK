@@ -27,6 +27,7 @@ test('count persists across requests; retries are idempotent; archive requires o
  assert.equal(retry.body.count,1);assert.equal(retry.body.receipt.number,1);assert.equal(JSON.stringify(retry.body).includes('Visitor'),false);
  const publicCount=await handleSignatures({method:'GET'},options);assert.deepEqual(publicCount.body,{count:1});
  const denied=await handleSignatures({method:'GET',query:{view:'private'}},options);assert.equal(denied.status,401);assert.equal(denied.body.records,undefined);
+ const wrong=await handleSignatures({method:'GET',query:{view:'private'},authorization:'Bearer wrong-key'},options);assert.equal(wrong.status,401);assert.match(wrong.body.error,/does not match/);
  const archive=await handleSignatures({method:'GET',query:{view:'private'},authorization:`Bearer ${env.SIGNATURE_ADMIN_TOKEN}`},options);
  assert.equal(archive.body.records[0].name,'Visitor');assert.equal(archive.body.count,1);
 });
