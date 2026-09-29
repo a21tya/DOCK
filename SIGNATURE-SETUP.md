@@ -1,6 +1,6 @@
 # Private DOCK guestbook
 
-The new section lives below the main canvas, with a “Leave your mark” link. Visitors draw with mouse, touch or pen, or use a typed name. Each confirmed submission produces a personal downloadable constellation. It is a guestbook, not a legal electronic-signature service.
+The new section lives below the main canvas. A visible “Leave your mark” preview occupies the bottom of the first screen and scrolls to it. Visitors draw with mouse, touch or pen, or use a typed name. Each confirmed submission produces a personal downloadable constellation and a short melody generated locally from the mark. It is a guestbook, not a legal electronic-signature service.
 
 ## Required production connection
 
