@@ -377,3 +377,5 @@ button:disabled{opacity:.55;cursor:default}
 @media(max-width:360px){.field-entry{font-size:8px!important;padding:10px!important}.topbar{gap:10px!important}.github-link{padding:9px!important}}
 
 .examples>span{display:flex;align-items:center;justify-content:center;gap:10px}.examples .shuffle-sparks{border:0;background:transparent;color:inherit;font-size:20px;line-height:1;padding:3px 7px;border-radius:50%;min-width:30px;min-height:30px}.examples .shuffle-sparks:hover{background:#ffffff20;transform:rotate(35deg)}
+
+.world.sunrise .core h1 em,.world.sunset .core h1 em{color:#ffe4b6}
