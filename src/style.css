@@ -39,7 +39,7 @@
 .clock-hand.minute{stroke:#d7ff9d;stroke-width:7}
 .clock-hand.second{stroke:#fff;stroke-width:3}
 .analog-wrap>span{font:500 10px 'IBM Plex Mono';letter-spacing:1px;text-align:center;color:#eee5f2}
-.calendar{max-width:680px;margin:24px auto 26px}
+.result-card .calendar{max-width:680px;margin:24px auto 26px}
 .calendar-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .calendar-heading h3{margin:0;font:600 24px 'Space Grotesk'}
 .calendar-heading button{background:#ffffff16;border:1px solid #ffffff65;color:#fff;padding:6px 13px;margin-left:7px}
@@ -379,3 +379,7 @@ button:disabled{opacity:.55;cursor:default}
 .examples>span{display:flex;align-items:center;justify-content:center;gap:10px}.examples .shuffle-sparks{border:0;background:transparent;color:inherit;font-size:20px;line-height:1;padding:3px 7px;border-radius:50%;min-width:30px;min-height:30px}.examples .shuffle-sparks:hover{background:#ffffff20;transform:rotate(35deg)}
 
 .world.sunrise .core h1 em,.world.sunset .core h1 em{color:#ffe4b6}
+/* Give the calendar the same focused, scrollable layout as the trip planner. */
+.world.calendar .draggable-headline,.world.calendar .subtitle{display:none}
+.world.calendar .result-card{max-height:calc(100dvh - 250px);overflow-y:auto}
+@media(max-width:760px){.world.calendar .result-card{max-height:calc(100dvh - 355px)}}

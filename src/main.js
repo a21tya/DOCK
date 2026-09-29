@@ -109,6 +109,7 @@ function parseReminder(text){
 function detect(input,skipMemory=false){
   const text=input.trim(), lower=text.toLowerCase();
   if(!skipMemory){const teaching=matchTeaching(lower,state.teachings);if(teaching){const remembered=detect(teaching.target,true);if(remembered.type!=='search'&&remembered.type!=='idle')return {...remembered,remembered:true,learnedFrom:teaching.phrase,similar:teaching.similar}}}
+  if(/^search(?: for)?\s+\S/i.test(text))return {type:'search',name:'Web search',query:text.replace(/^search(?: for)?\s+/i,''),palette:uniquePalette(lower),explicitSearch:true};
   const slash=commands.find(c=>`/${c.label.toLowerCase()}`===lower);if(slash)return detect(slash.prompt);
   if(/^trip\s+(?:to|in)\s+(.+)/i.test(text))return {type:'trip',name:'Plan a trip',place:text.match(/^trip\s+(?:to|in)\s+(.+)/i)[1].trim()};
   if(/^(?:games|play games)$/i.test(text))return {type:'games-hub',name:'Games'};
@@ -168,7 +169,7 @@ function detect(input,skipMemory=false){
   if(object){const objectColour=pickColour(text),values=objectColour?state.colorOverride??colourValues(objectColour):null;return {type:'emoji',...object,coloured:!!values,palette:values?shadePalette(values):null,values}}
   const found=findEmoji(text);
   if(found){const objectColour=pickColour(text);const values=objectColour?state.colorOverride??colourValues(objectColour):null;return {type:found.animal?'creature':'emoji',name:found.animal?`${titleCase(found.subject)} world`:`${titleCase(found.subject)} scene`,subject:found.subject,emoji:found.emoji,bg:found.animal?uniquePalette(found.subject)[2]:found.subject==='milk'?'#f2ebe2':uniquePalette(found.subject)[0],ink:found.animal?'#fff6f5':'#33233f',coloured:!!values,palette:values?shadePalette(values):null,values}}
-  if(/ocean|sea|beach|water/.test(lower))return {type:'color',name:'Blue hour',palette:palettes.blue};
+  if(/\b(?:ocean|sea|beach|water)\b/.test(lower))return {type:'color',name:'Blue hour',palette:palettes.blue};
   if(state.aiScene?.query===text){const plan=state.aiScene.plan;return {type:plan.action==='answer'?'ai-answer':'ai-visual',name:'Made for this prompt',palette:plan.colors||uniquePalette(text),title:plan.title||titleCase(plan.subject)||'Your idea',description:plan.description,emoji:plan.emoji,query:text}}
   return {type:'search',name:'Explore this',palette:uniquePalette(lower),query:text};
 }
@@ -400,7 +401,7 @@ function queueWeather(scene){
 function queueInterpret(immediate=false){
   clearTimeout(aiRender);
   if(import.meta.env.BASE_URL!=='/')return;
-  if(state.aiUnavailable||detect(state.text).type!=='search'||state.text.trim().length<4)return;
+  if(state.aiUnavailable||detect(state.text).explicitSearch||detect(state.text).type!=='search'||state.text.trim().length<4)return;
   const query=state.text.trim();
   const cached=aiCache.get(query);
   if(cached){state.aiPending=null;state.aiScene={query,plan:cached};const input=document.querySelector('#prompt');render(document.activeElement===input,input?.selectionStart);return}
